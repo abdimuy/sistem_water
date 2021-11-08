@@ -1,7 +1,7 @@
 const store = require('./store');
 
 const getClients = (idClient) => {
-  return new Promise(async(resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
       const clients = await store.list(idClient);
       const clientsTransactions = await store.list_transactions(clients);
@@ -14,7 +14,7 @@ const getClients = (idClient) => {
   });
 };
 
-const addClient = ({name, lastName, disabled, idTypeClient, idWaterConnection}) => {
+const addClient = ({ name, lastName, disabled, idTypeClient, idWaterConnection }) => {
   return new Promise((resolve, reject) => {
     resolve(store.add({
       name,
@@ -26,7 +26,7 @@ const addClient = ({name, lastName, disabled, idTypeClient, idWaterConnection}) 
   });
 };
 
-const updateClient = ({ idClient, name, lastName, disabled, idTypeClient, idWaterConnection}) => {
+const updateClient = ({ idClient, name, lastName, disabled, idTypeClient, idWaterConnection }) => {
   return new Promise((resolve, reject) => {
     resolve(store.update({
       idClient,

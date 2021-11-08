@@ -53,7 +53,7 @@ const getWaterConnectionWithoutClient = () => {
     try {
       const [rowsWaterConnectionWithoutClient] = await (await mySqlConnectionPromise).execute(query);
       resolve(rowsWaterConnectionWithoutClient);
-    } catch (er) {
+    } catch (err) {
       console.log(err);
       reject('Error al obtener los datos');
     };

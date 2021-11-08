@@ -8,7 +8,7 @@ router.post('/', (req, res) => {
   const {
     street,
     houseNumber,
-    colonia,
+    idColonia,
     reference,
     dateConnection,
     dateInitPayment,
@@ -17,12 +17,16 @@ router.post('/', (req, res) => {
     lastName,
     disabled,
     idTypeClient,
-    idWaterConnection
+    idWaterConnection,
+    dateInitTime,
+    dateFinishTime,
+    dateStartPayment,
+    timeConnectionIsActive
   } = req.body;
   controller.setClientAndWaterConnection({
     street,
     houseNumber,
-    colonia,
+    idColonia,
     reference,
     dateConnection,
     dateInitPayment,
@@ -31,13 +35,17 @@ router.post('/', (req, res) => {
     lastName,
     disabled,
     idTypeClient,
-    idWaterConnection
+    idWaterConnection,
+    dateInitTime,
+    dateFinishTime,
+    dateStartPayment,
+    timeConnectionIsActive
   })
     .then((clientAndWaterConnection) => {
       response.success({req, res, message: 'El cliente y la toma de agua se han agregado con exito'});
     })
     .catch((err) => {
-      response.error({req, res, error: 'Asegurece de agregar toda la información obligatoria en el formulario', status: 400, details: err});
+      response.error({req, res, error: 'Error al dar de alta el cliente y la toma de agua', status: 400, details: err});
     });
 });
 

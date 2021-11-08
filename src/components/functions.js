@@ -1,3 +1,5 @@
+const mySqlConnectionPromise = require('../database/connectionPromise');
+
 const createQueryUpdate = (arrayFields, table, idElement) => {
   let query = `UPDATE ${table} SET `;
   let variablesQuery = [];
@@ -34,7 +36,29 @@ const checkExitsFields = (arrayFields) => {
   return result;
 };
 
+const queryDB = (query, variablesQuery) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      if (Array.isArray(variablesQuery)) {
+        const [rows, fields] = await (await mySqlConnectionPromise).execute(query, variablesQuery);
+        resolve([rows, fields]);
+      } else {
+        const [rows, fields] = await (await mySqlConnectionPromise).execute(query);
+        resolve([rows, fields]);
+      };
+    } catch (err) {
+      console.log(err);
+      reject(err);
+    };
+  });
+};
+
+const functionsDB = {
+  queryDB
+}
+
 module.exports = {
   createQueryUpdate,
-  checkExitsFields
+  checkExitsFields,
+  functionsDB
 }
