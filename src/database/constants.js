@@ -11,4 +11,6 @@ module.exports = {
   table_type_reports: 'type_reports',
   table_colonias: 'colonias',
   table_type_transactions: 'type_transaction',
+  table_debts: 'debts',
+  table_type_debts: 'type_debts',
 }

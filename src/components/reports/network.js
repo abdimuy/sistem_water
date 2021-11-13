@@ -24,6 +24,7 @@ router.get('/client/:id_client', (req, res) => {
 })
 
 router.post('/', (req, res) => {
+  console.log('post')
   const {
     idTypeReport,
     idTimeConnection,

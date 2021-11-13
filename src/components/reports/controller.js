@@ -14,7 +14,7 @@ const getReportsClient = (idClient) => {
 
 const setReport = (args) => {
   return new Promise((resolve, reject) => {
-    resolve(store.listReportsClient(args));
+    resolve(store.set(args));
   });
 };
 

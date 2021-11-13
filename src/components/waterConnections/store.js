@@ -1,6 +1,6 @@
 const mySqlConnection = require('../../database/connection');
 const mySqlConnectionPromise = require("../../database/connectionPromise");
-const { table_water_connection, table_clients } = require('./../../database/constants');
+const { table_water_connection, table_clients, table_debts, table_type_debts } = require('./../../database/constants');
 
 const getWaterConnections = (idWaterConnection) => {
   return new Promise((resolve, reject) => {

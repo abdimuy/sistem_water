@@ -1,5 +1,5 @@
 const mySqlConnectionPromise = require('../../database/connectionPromise');
-const { table_reports, table_transaction, table_clients, table_time_connection } = require('../../database/constants');
+const { table_reports, table_transaction, table_clients, table_time_connection, table_type_debts } = require('../../database/constants');
 const { list_transactions } = require('../clients/store');
 const moment = require('moment')
 
@@ -57,7 +57,7 @@ const setReport = (args) => {
       };
       // console.log({client});
 
-      const transactionsAndLatePayment  = await list_transactions(client);
+      const transactionsAndLatePayment = await list_transactions(client);
       const { latePayments } = transactionsAndLatePayment[0];
       // console.log({latePayments, transactionsArray});
       // resolve(transactions)
@@ -68,7 +68,16 @@ const setReport = (args) => {
       await (await mySqlConnectionPromise).beginTransaction();
       const [rows, fields] = await (await mySqlConnectionPromise).execute(query, variablesQuery);
       const ID_REPORT = rows.insertId;
-      const [queryTransactions, variablesQueryTransactions] = createQueryTransactions(transactionsArray, ID_REPORT);
+      const [
+        queryTransactions,
+        variablesQueryTransactions,
+        querySetDebts,
+        variablesQuerySetDebts
+      ] = createQueryTransactions(transactionsArray, ID_REPORT);
+      await querySetDebts.forEach(async(query, index) => {
+        await (await mySqlConnectionPromise).execute(query, variablesQuerySetDebts[index]);
+      });
+      // await (await mySqlConnectionPromise).execute(queryTransactions, variablesQueryTransactions);
       await (await mySqlConnectionPromise).execute(queryTransactions, variablesQueryTransactions);
       await (await mySqlConnectionPromise).commit();
       resolve(rows);
@@ -86,14 +95,18 @@ const validatePayments = (paymentsArray, latePaymentsArray) => {
     const paymentsArrayEdited = [...paymentsArray];
     let latePaymentsArrayEdited = [...latePaymentsArray];
     paymentsArrayEdited.forEach((payment, index) => {
+      // console.log({payment})
       // console.log({payment: payment.date});
-      const latePaymentMonth = moment(latePaymentsArrayEdited[index].date).month();
-      const latePaymentYear = moment(latePaymentsArrayEdited[index].date).year();
-      const paymentMonth = moment(payment.date).month();
-      const paymentYear = moment(payment.date).year();
-      if(!(latePaymentMonth === paymentMonth && latePaymentYear === paymentYear)) {
-        reject('La fecha de pago no coincide con la fecha de vencimiento');
-      };
+      // const latePaymentMonth = moment(latePaymentsArrayEdited[index].date).month();
+      // const latePaymentYear = moment(latePaymentsArrayEdited[index].date).year();
+      // const paymentMonth = moment(payment.date).month();
+      // const paymentYear = moment(payment.date).year();
+      // if(!(latePaymentMonth === paymentMonth && latePaymentYear === paymentYear)) {
+      //   reject('La fecha de pago no coincide con la fecha de vencimiento');
+      // };
+      if (!(payment.order === latePaymentsArrayEdited[index].order)) {
+        reject('El orden de pago no coincide con el orden de vencimiento');
+      }
     });
     resolve(true);
   });
@@ -102,36 +115,39 @@ const validatePayments = (paymentsArray, latePaymentsArray) => {
 const validateArray = (array) => {
   if (!Array.isArray(array)) return false;
   return array.every(transaction => {
-    // console.log(transaction)
+    console.log(transaction)
     const {
-      amount,
+      price: amount,
       date,
-      dateCreate,
       idTypeTransaction,
-      idReport
     } = transaction;
-    return validateParameters(amount, date, dateCreate, idTypeTransaction, idReport);
+    console.log({ amount, date, idTypeTransaction })
+    return validateParameters(amount, date, idTypeTransaction);
   });
 };
 
 const createQueryTransactions = (transactionsArray, ID_REPORT) => {
   let query = '';
   let variablesQuery = [];
+  let queryChangeToPayment = [];
+  let variablesQueryChangeToPayment = [];
   transactionsArray.forEach((transaction, index) => {
     const {
-      amount,
+      price: amount,
       date,
-      dateCreate,
       note,
       idTypeTransaction,
     } = transaction;
     const transactionArgs = {
       amount,
-      date,
-      dateCreate,
+      date: moment(date).format('YYYY-MM-DD hh:mm:ss'),
       note,
       idTypeTransaction,
       ID_REPORT
+    }
+    if (transaction.id !== undefined) {
+      queryChangeToPayment.push(`UPDATE ${table_type_debts} SET isPaid = 1 WHERE id = ?;`);
+      variablesQueryChangeToPayment.push(transaction.id);
     }
     if (index === 0) {
       query += `
@@ -143,16 +159,16 @@ const createQueryTransactions = (transactionsArray, ID_REPORT) => {
           idTypeTransaction,
           idReport
         )
-        VALUES (?, ?, ?, ${argIsNull(note)}, ?, ?)
+        VALUES (?, ?, '${moment().format('YYYY-MM-DD hh:mm:ss')}', ${argIsNull(note)}, ?, ?)
       `
     } else {
-      query += `, (?, ?, ?, ${argIsNull(note)}, ?, ?)`
+      query += `, (?, ?, '${moment().format('YYYY-MM-DD hh:mm:ss')}', ${argIsNull(note)}, ?, ?)`
     };
 
     loopTransactionArgs(transactionArgs, variablesQuery);
   });
   // console.log([query, variablesQuery]);
-  return [query, variablesQuery];
+  return [query, variablesQuery, queryChangeToPayment, variablesQueryChangeToPayment];
 };
 
 const argIsNull = (arg) => (arg === undefined || arg === null) ? 'null' : '?';
