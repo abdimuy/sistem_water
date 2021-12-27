@@ -2,6 +2,8 @@ const express = require('express');
 // const ClientsRoutes = require('./components/clients/network');
 const dotenv = require('dotenv');
 const cookieParser = require('cookie-parser');
+const moment = require('moment');
+require('moment/locale/es-mx');
 
 const router = require('./network/routes');
 const cors = require('cors');
@@ -14,7 +16,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cors({credentials: true, origin: true}));
 // app.use(auth);
-
+moment.locale('es-mx');
 dotenv.config({ path: './env/.env' });
 
 app.use(cookieParser());

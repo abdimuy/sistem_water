@@ -1,5 +1,13 @@
 const mySqlConnectionPromise = require('../../database/connectionPromise');
-const { table_reports, table_type_reports, table_transaction } = require('../../database/constants');
+const {
+  table_reports,
+  table_type_reports,
+  table_transaction,
+  table_time_connection,
+  table_clients,
+  table_water_connection,
+  table_type_transactions
+} = require('../../database/constants');
 const setReport = require('./setReport');
 const { functionsDB: { queryDB } } = require('../functions')
 
@@ -29,19 +37,20 @@ const getReports = (idReport) => {
   });
 };
 
-getReportsClient = (idClient) => {
+const getReportsClient = (idReport) => {
   return new Promise(async(resolve, reject) => {
-    const queryReport = `
+    let queryReport = `
       SELECT 
         ${table_reports}.id,
         ${table_type_reports}.name,
         ${table_reports}.idTimeConnection,
         ${table_reports}.date,
-        ${table_reports}.note
+        ${table_reports}.note,
+        ${table_time_connection}.idClient
       FROM ${table_reports}
       INNER JOIN ${table_transaction} ON ${table_reports}.id = ${table_transaction}.idReport
       INNER JOIN ${table_type_reports} ON ${table_reports}.idTypeReport = ${table_type_reports}.id
-      GROUP BY ${table_reports}.id;
+      INNER JOIN ${table_time_connection} ON ${table_reports}.idTimeConnection = ${table_time_connection}.id
       `;
       
       const queryTransaction = `
@@ -49,14 +58,27 @@ getReportsClient = (idClient) => {
           ${table_transaction}.idReport,
           ${table_transaction}.id AS idTransaction,
           ${table_transaction}.amount,
-          ${table_transaction}.date AS dateTransaction
+          ${table_transaction}.date AS dateTransaction,
+          ${table_type_transactions}.name
         FROM ${table_reports}
         INNER JOIN ${table_transaction} ON ${table_reports}.id = ${table_transaction}.idReport
         INNER JOIN ${table_type_reports} ON ${table_reports}.idTypeReport = ${table_type_reports}.id
+        INNER JOIN ${table_type_transactions} ON ${table_transaction}.idTypeTransaction = ${table_type_transactions}.id
       `;
-      // WHERE ${table_reports}.id = ?
+
+    if(idReport !== undefined) {
+      queryReport += `
+        WHERE ${table_reports}.id = ?
+        GROUP BY ${table_reports}.id
+      `;
+    } else {
+      queryReport += `
+        GROUP BY ${table_reports}.id
+      `;
+    };
+
     try {
-      const [reports] = await queryDB(queryReport);
+      const [reports] = await queryDB(queryReport, [idReport]);
       const [transactions] = await queryDB(queryTransaction);
       const reportsWithTransactions = createReportWithTransactions(reports, transactions);
 

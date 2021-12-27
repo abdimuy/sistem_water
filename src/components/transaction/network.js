@@ -14,6 +14,17 @@ router.get('/', (req, res) => {
     });
 });
 
+router.get('/range', (req, res) => {
+  const { dateStart, dateEnd } = req.query;
+  controller.getTransactionsRange(dateStart, dateEnd)
+    .then((transaction) => {
+      response.success({req, res, message: transaction});
+    })
+    .catch((err) => {
+      response.error({req, res, error: 'Error al obtener las transacciones', status: 500, details: err});
+    });
+});
+
 router.get('/:id', (req, res) => {
   const { id: ID_TRANSACTION } = req.params;
   controller.getTransactions(ID_TRANSACTION)

@@ -1,6 +1,6 @@
 const mySqlConnection = require('../../database/connection');
 const mySqlConnectionPromise = require("../../database/connectionPromise");
-const { table_water_connection, table_clients, table_debts, table_type_debts } = require('./../../database/constants');
+const { table_water_connection, table_clients, table_debts, table_type_debts, table_colonias } = require('./../../database/constants');
 
 const getWaterConnections = (idWaterConnection) => {
   return new Promise((resolve, reject) => {
@@ -40,14 +40,12 @@ const getWaterConnectionWithoutClient = () => {
         ${table_water_connection}.id,
         ${table_water_connection}.street,
         ${table_water_connection}.houseNumber,
-        ${table_water_connection}.colonia,
+        ${table_colonias}.name AS colonia,
         ${table_water_connection}.reference,
-        ${table_water_connection}.dateConnection,
-        ${table_water_connection}.dateInitPayment
+        ${table_water_connection}.dateConnection
       FROM ${table_water_connection}
-      LEFT JOIN ${table_clients}
-      ON ${table_water_connection}.id = idWaterConnection
-      WHERE ${table_clients}.id IS NULL
+      INNER JOIN ${table_colonias} ON ${table_water_connection}.idColonia = ${table_colonias}.id
+      LEFT JOIN ${table_clients} ON ${table_water_connection}.id = ${table_clients}.idWaterConnection
     `;
 
     try {

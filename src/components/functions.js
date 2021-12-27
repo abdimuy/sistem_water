@@ -24,14 +24,24 @@ const checkExitsFields = (arrayFields) => {
   let result;
   let counter = 0;
   arrayFields.forEach((fieldItem) => {
-    // if(fieldItem.notNull) {
+    if(fieldItem.notNull) {
       if(counter === 0) {
         result = !fieldItem.field;
       } else {
         result = result && !fieldItem.field;
       };
       counter++;
-    // };
+    };
+  });
+  return result;
+};
+
+const checkIsUndifinedObj = (obj) => {
+  let result;
+  Object.keys(obj).forEach((key) => {
+    if(obj[key] === undefined) {
+      result = true;
+    };
   });
   return result;
 };
@@ -60,5 +70,6 @@ const functionsDB = {
 module.exports = {
   createQueryUpdate,
   checkExitsFields,
+  checkIsUndifinedObj,
   functionsDB
 }

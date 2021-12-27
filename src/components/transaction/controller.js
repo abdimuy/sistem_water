@@ -6,6 +6,12 @@ const getTransactions = (idTransaction) => {
   });
 };
 
+const getTransactionsRange = (dateStart, dateEnd) => {
+  return new Promise((resolve, reject) => {
+    resolve(store.listRange(dateStart, dateEnd));
+  });
+};
+
 const setTransaction = (args) => {
   return new Promise((resolve, reject) => {
     resolve(store.add(args));
@@ -26,6 +32,7 @@ const deleteTransaction = (idTransaction) => {
 
 module.exports = {
   getTransactions,
+  getTransactionsRange,
   setTransaction,
   updateTransaction,
   deleteTransaction

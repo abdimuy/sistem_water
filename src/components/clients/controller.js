@@ -14,15 +14,9 @@ const getClients = (idClient) => {
   });
 };
 
-const addClient = ({ name, lastName, disabled, idTypeClient, idWaterConnection }) => {
+const addClient = (client) => {
   return new Promise((resolve, reject) => {
-    resolve(store.add({
-      name,
-      lastName,
-      disabled,
-      idTypeClient,
-      idWaterConnection
-    }));
+    resolve(store.add(client));
   });
 };
 

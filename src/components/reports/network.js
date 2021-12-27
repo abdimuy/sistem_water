@@ -12,9 +12,9 @@ router.get('/:id', (req, res) => {
     });
 });
 
-router.get('/client/:id_client', (req, res) => {
-  const { id_client: ID_CLIENT } = req.params;
-  controller.getReportsClient(ID_CLIENT)
+router.get('/client/:id_report', (req, res) => {
+  const { id_report: ID_REPORT } = req.params;
+  controller.getReportsClient(ID_REPORT)
     .then(reports => {
       response.success({req, res, message: reports});
     })

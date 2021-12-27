@@ -10,6 +10,9 @@ const users = require('../components/users/network');
 const clientAndWaterConnection = require('../components/clientAndWaterConnection/network');
 const reports = require('../components/reports/network');
 const auth = require('../authentication/auth');
+const debs = require('../components/debs/network');
+const report_pdf = require('../components/report_pdf/network');
+const colonias = require('../components/colonias/network');
 
 const router = (server) => {
   server.use('/', home);
@@ -25,6 +28,9 @@ const router = (server) => {
   server.use('/users', users);
   server.use('/client_and_water_connection', clientAndWaterConnection);
   server.use('/reports', reports);
+  server.use('/debs', debs);
+  server.use('/report_pdf', report_pdf);
+  server.use('/colonias', colonias);
 };
 
 module.exports = router;

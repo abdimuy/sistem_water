@@ -27,14 +27,7 @@ router.get('/:id', (req, res) => {
 });
 
 router.post('/', (req, res) => {
-  const { name, lastName, disabled, idTypeClient, idWaterConnection } = req.body;
-  controller.addClient({
-    name,
-    lastName,
-    disabled,
-    idTypeClient,
-    idWaterConnection
-  })
+  controller.addClient(req.body)
   .then((clientAdded) => {
     response.success({req, res, message: clientAdded});
   })

@@ -1,5 +1,5 @@
 const mySqlConnectionPromise = require('../../database/connectionPromise');
-const { table_reports, table_transaction, table_clients, table_time_connection, table_type_debts } = require('../../database/constants');
+const { table_reports, table_transaction, table_clients, table_time_connection, table_type_debts, table_debts } = require('../../database/constants');
 const { list_transactions } = require('../clients/store');
 const moment = require('moment')
 
@@ -12,10 +12,23 @@ const setReport = (args) => {
       dateReport,
       transactionsArray
     } = args;
+    try {
+      if (await !validateParameters(idTypeReport, idTimeConnection, dateReport)) {
+        reject('Faltan parametros');
+        return null;
+      }
+      await validateArray(transactionsArray);
+    } catch (err) {
+      reject(err);
+      return null;
+    }
     // console.log(noteReport);
-
-    await !validateParameters(idTypeReport, idTimeConnection, dateReport) ? reject('Faltan parametros') : null;
-    await !validateArray(transactionsArray) ? reject('El array de transacciones no es valido') : null;
+    // if (await !validateArray(transactionsArray)) {
+    //   console.log('El array no es valido');
+    //   reject('El array de transacciones no es valido');
+    //   return null
+    // };
+    // console.log({ejemplo: await validateArray(transactionsArray)});
 
     const query = `
     INSERT INTO ${table_reports} (idTypeReport, idTimeConnection, note, date)
@@ -74,10 +87,14 @@ const setReport = (args) => {
         querySetDebts,
         variablesQuerySetDebts
       ] = createQueryTransactions(transactionsArray, ID_REPORT);
-      await querySetDebts.forEach(async(query, index) => {
-        await (await mySqlConnectionPromise).execute(query, variablesQuerySetDebts[index]);
+      // console.log({ querySetDebts, variablesQuerySetDebts });
+      await querySetDebts.forEach(async (query, index) => {
+        console.log('aqui ando')
+        const variableQuerySetDebts = [variablesQuerySetDebts[index]];
+        await (await mySqlConnectionPromise).execute(query, variableQuerySetDebts);
       });
       // await (await mySqlConnectionPromise).execute(queryTransactions, variablesQueryTransactions);
+      console.log({queryTransactions, variablesQueryTransactions});
       await (await mySqlConnectionPromise).execute(queryTransactions, variablesQueryTransactions);
       await (await mySqlConnectionPromise).commit();
       resolve(rows);
@@ -88,22 +105,15 @@ const setReport = (args) => {
   });
 };
 
-const validateParameters = (...args) => args.every(arg => arg !== undefined);
+const validateParameters = (...args) => {
+  return args.every(arg => arg !== undefined)
+};
 
 const validatePayments = (paymentsArray, latePaymentsArray) => {
   return new Promise((resolve, reject) => {
     const paymentsArrayEdited = [...paymentsArray];
     let latePaymentsArrayEdited = [...latePaymentsArray];
     paymentsArrayEdited.forEach((payment, index) => {
-      // console.log({payment})
-      // console.log({payment: payment.date});
-      // const latePaymentMonth = moment(latePaymentsArrayEdited[index].date).month();
-      // const latePaymentYear = moment(latePaymentsArrayEdited[index].date).year();
-      // const paymentMonth = moment(payment.date).month();
-      // const paymentYear = moment(payment.date).year();
-      // if(!(latePaymentMonth === paymentMonth && latePaymentYear === paymentYear)) {
-      //   reject('La fecha de pago no coincide con la fecha de vencimiento');
-      // };
       if (!(payment.order === latePaymentsArrayEdited[index].order)) {
         reject('El orden de pago no coincide con el orden de vencimiento');
       }
@@ -113,17 +123,33 @@ const validatePayments = (paymentsArray, latePaymentsArray) => {
 };
 
 const validateArray = (array) => {
-  if (!Array.isArray(array)) return false;
-  return array.every(transaction => {
-    console.log(transaction)
-    const {
-      price: amount,
-      date,
-      idTypeTransaction,
-    } = transaction;
-    console.log({ amount, date, idTypeTransaction })
-    return validateParameters(amount, date, idTypeTransaction);
-  });
+  return new Promise(async(resolve, reject) => {
+    console.log({array})
+    if (!Array.isArray(array)) {
+      reject('El array no es valido');
+      return null;
+    };
+    const result = array.every(transaction => {
+      console.log(transaction)
+      const {
+        price: amount,
+        date,
+        idTypeTransaction,
+      } = transaction;
+      console.log({ amount, date, idTypeTransaction })
+      // console.log(validateParameters(amount, date, idTypeTransaction));
+      
+      // resolve(!validateParameters(amount, date, idTypeTransaction));
+      return validateParameters(amount, date, idTypeTransaction);
+    });
+    if(result) {
+      console.log({result})
+      resolve(true);
+    } else {
+      console.log({result})
+      reject('El array no es valido');
+    }
+  })
 };
 
 const createQueryTransactions = (transactionsArray, ID_REPORT) => {
@@ -144,11 +170,12 @@ const createQueryTransactions = (transactionsArray, ID_REPORT) => {
       note,
       idTypeTransaction,
       ID_REPORT
-    }
+    };
     if (transaction.id !== undefined) {
-      queryChangeToPayment.push(`UPDATE ${table_type_debts} SET isPaid = 1 WHERE id = ?;`);
+      queryChangeToPayment.push(`UPDATE ${table_debts} SET isPaid = 1 WHERE id = ?;`);
       variablesQueryChangeToPayment.push(transaction.id);
-    }
+    };
+    console.log({ transactionArgs });
     if (index === 0) {
       query += `
         INSERT INTO ${table_transaction} (
@@ -160,7 +187,7 @@ const createQueryTransactions = (transactionsArray, ID_REPORT) => {
           idReport
         )
         VALUES (?, ?, '${moment().format('YYYY-MM-DD hh:mm:ss')}', ${argIsNull(note)}, ?, ?)
-      `
+      `;
     } else {
       query += `, (?, ?, '${moment().format('YYYY-MM-DD hh:mm:ss')}', ${argIsNull(note)}, ?, ?)`
     };

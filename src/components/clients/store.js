@@ -1,4 +1,5 @@
 const mySqlConnection = require('../../database/connection');
+const mySqlConnectionPromise = require('../../database/connectionPromise');
 const {
   table_clients,
   table_transaction,
@@ -79,12 +80,15 @@ const getTransactionsClients = async (arrayOrObject) => {
         ${table_transaction}.amount,
         ${table_transaction}.date,
         ${table_transaction}.note,
-        ${table_transaction}.dateCreate
+        ${table_transaction}.dateCreate,
+        ${table_type_transactions}.name,
+        ${table_reports}.id AS idReport
       FROM ${table_transaction}
       INNER JOIN ${table_reports} ON ${table_transaction}.idReport = ${table_reports}.id
       INNER JOIN ${table_time_connection} ON ${table_reports}.idTimeConnection = ${table_time_connection}.id
       INNER JOIN ${table_type_transactions} ON ${table_transaction}.idTypeTransaction = ${table_type_transactions}.id
       WHERE ${table_time_connection}.id = ?
+      ORDER BY ${table_transaction}.date ASC;
       `;
     const queryPrices = `
       SELECT
@@ -177,7 +181,6 @@ const generateLatePayment = async ({ idTimeConnection, idTypeClient, prices, dat
 
   try {
     const debts = await getDebts(idTimeConnection);
-    console.log({ debts });
     const editPrices = newPrices.map(price => {
       return price.dateFinish ?
         ({
@@ -190,73 +193,70 @@ const generateLatePayment = async ({ idTimeConnection, idTypeClient, prices, dat
         });
     });
     // console.log(editPrices)
-  
+
     let indexDateStart = editPrices.findIndex(price => newDateStartClient < moment(price.dateInit));
 
-    // console.log({ newDateStartClient })
-    // console.log({ indexDateStart })
     if (indexDateStart === -1) {
       indexDateStart = editPrices.length - 1;
     } else {
       indexDateStart -= 1
     }
-    // console.log({ indexDateStart })
     let numberMonths = dateCurrent.diff(newDateStartClient, 'months', true);
     numberMonths = numberMonths % 1 === 0 ? numberMonths + 1 : Math.ceil(numberMonths);
+    numberMonths += 24;
     // console.log({ numberMonths })
-  
-    // let dateStartPayment = newDateStartClient;
+
     for (let i = 0; i < numberMonths; i++) {
       // console.log(dateStartPayment)
       const dateMonthlyPayment = moment(newDateStartClient).add(i, 'month')
       const paymentExist = paymentsArray.find(payment => moment(payment.date).year() === dateMonthlyPayment.year() && moment(payment.date).month() === dateMonthlyPayment.month())
       if (paymentExist !== undefined) {
+        // console.log(i);
         // console.log('Ya existe un pago para este mes');
-        // console.log('No se agrego el pago con fecha: ', dateMonthlyPayment);
         continue;
       }
-      // console.log({ dateMonthlyPayment, editPrices })
       const selectedPrice = editPrices.find(price => dateMonthlyPayment >= moment(price.dateInit) && dateMonthlyPayment < moment(price.dateFinish));
-      // console.log({ selectedPrice })
-  
+
       const typePaymentMonth = dateMonthlyPayment.month();
       const typePaymentYear = dateMonthlyPayment.year();
-      // console.log({typePaymentMonth, comparate1: moment().month(), typePaymentYear, comparate2: moment().year()})
-      const typePayment = dateCurrent.month() === typePaymentMonth && dateCurrent.year() === typePaymentYear ?
-        ('Pago pendiente') :
-        ('Pago atrasado');
+      const typePayment = createTypePayment({
+        dateCurrent,
+        dateMonthlyPayment
+      }) ? ('Pago pendiente') : ('Pago atrasado');
+      // const typePayment = dateCurrent.month() === typePaymentMonth && dateCurrent.year() === typePaymentYear ?
       const price = typePayment === 'Pago atrasado' ? selectedPrice.latePrice : selectedPrice.price
 
-      // console.log({price, typePayment})
       const monthlyPayment = { date: dateMonthlyPayment, price: price, typePayment, idTypeTransaction: 1 };
 
-      
-      
-      if(typePaymentMonth === 0) {
+      if (typePaymentMonth === 0) {
 
         const anualPayment = {
           date: dateMonthlyPayment,
           price: selectedPrice.priceAnnuity,
           name: 'Pago de mantenimiento anual',
-          typePayment: 'Pago pendiente'
+          typePayment: 'Pago pendiente',
+          idTypeTransaction: 3
         };
+        // console.log({anualPayment})
         paymentList = [...paymentList, anualPayment, monthlyPayment];
       } else {
         paymentList = [...paymentList, monthlyPayment];
       };
       // paymentList = [...paymentList, {dateStartPayment: moment(newDateStartClient).add(i, 'month').format('YYYY-MM-DD')}]
     };
-  
+
     // console.log(paymentList)
     paymentList = [...debts, ...paymentList].sort((a, b) => moment(a.date).diff(moment(b.date)));
     // console.log(paymentList.map((payment, index) => ({...payment, order: index + 1})));
-    return paymentList.map((payment, index) => ({...payment, order: index + 1}));
+    return paymentList.map((payment, index) => ({ ...payment, order: index + 1 }));
   } catch (err) {
     console.log(err);
   }
-
-
 };
+
+const createTypePayment = ({ dateCurrent, dateMonthlyPayment }) => {
+  return moment(dateCurrent).isSameOrBefore(dateMonthlyPayment, 'month');
+}
 
 const getDebts = (idTimeConnection) => {
   return new Promise(async (resolve, reject) => {
@@ -266,10 +266,11 @@ const getDebts = (idTimeConnection) => {
     const query = `
       SELECT 
         ${table_debts}.id,
-        ${table_type_debts}.name,
+        ${table_type_debts}.name AS typePayment,
         ${table_debts}.note,
         ${table_debts}.dateToPay AS date,
-        ${table_debts}.price
+        ${table_debts}.price,
+        ${table_type_debts}.idTypeTransaction
       FROM ${table_debts}
       INNER JOIN ${table_type_debts} ON ${table_debts}.idTypeDebts = ${table_type_debts}.id
       WHERE (${table_debts}.idTimeConnection = ? AND ${table_debts}.isPaid = 0);
@@ -286,42 +287,105 @@ const getDebts = (idTimeConnection) => {
   });
 };
 
-const setClient = ({ name, lastName, disabled, idTypeClient, idWaterConnection }) => {
-  return new Promise((resolve, reject) => {
+const setClientHidrante = (data) => {
+  return new Promise(async (resolve, reject) => {
+    const {
+      name,
+      lastName,
+      disabled,
+      idTypeClient,
+      idWaterConnection,
+      dateInitPayment,
+      active,
+      dateStartPayment
+    } = data;
+
+    const client = {
+      name,
+      lastName,
+      disabled,
+      idTypeClient
+    }
+
+    const timeConnection = {
+      idWaterConnection,
+      dateInitPayment,
+      active,
+      dateStartPayment
+    }
     // console.log({name, lastName, disabled, idTypeClient, idWaterConnection})
-    if (!name || !lastName || !idTypeClient) {
+    console.log({name,
+      lastName,
+      disabled,
+      idTypeClient,
+      idWaterConnection,
+      dateInitPayment,
+      active,
+      dateStartPayment})
+    if (!name || !lastName || !idTypeClient || !idWaterConnection || !dateInitPayment || !active || !dateStartPayment) {
       reject('Agregue toda la informacion necesaria para agregar un cliente');
       return null;
     }
+
     let variablesQuery = [];
     let query = ``;
-    if (!idWaterConnection) {
-      query = `
-        INSERT INTO ${table_clients} (name, lastName, disabled, idTypeClient)
-        VALUES (?, ?, ?, ?)
-      `;
-      variablesQuery = [name, lastName, disabled, idTypeClient];
-    } else {
-      query = `
-        INSERT INTO ${table_clients} (name, lastName, disabled, idTypeClient, idWaterConnection)
-        VALUES (?, ?, ?, ?, ?)
-      `;
-      variablesQuery = [name, lastName, disabled, idTypeClient, idWaterConnection];
-    };
+    // if (!idWaterConnection) {
+    //   query = `
+    //     INSERT INTO ${table_clients} (name, lastName, disabled, idTypeClient)
+    //     VALUES (?, ?, ?, ?)
+    //   `;
+    //   variablesQuery = [name, lastName, disabled, idTypeClient];
+    // } else {
+    //   query = `
+    //     INSERT INTO ${table_clients} (name, lastName, disabled, idTypeClient, idWaterConnection)
+    //     VALUES (?, ?, ?, ?, ?)
+    //   `;
+    //   variablesQuery = [name, lastName, disabled, idTypeClient, idWaterConnection];
+    // };
 
-    mySqlConnection.query(
-      query,
-      variablesQuery,
-      (err, results, fields) => {
-        if (!err) {
-          resolve('Cliente agregado con exito');
-        } else {
-          console.log(err);
-          reject(err)
-          return null
-        };
-      }
-    );
+    query = `
+      INSERT INTO ${table_clients} SET ?
+    `
+    variablesQuery = [client];
+    const queryTimeConnection = `
+      INSERT INTO ${table_time_connection} SET ?
+    `
+
+    console.log(query)
+    console.log(queryTimeConnection)
+
+    // mySqlConnection.query(
+    //   query,
+    //   variablesQuery,
+    //   (err, results, fields) => {
+    //     if (!err) {
+    //       resolve('Cliente agregado con exito');
+    //     } else {
+    //       console.log(err);
+    //       reject(err)
+    //       return null
+    //     };
+    //   }
+    // );
+
+    try {
+      (await mySqlConnectionPromise).beginTransaction()
+      // const [rowsClient] = await queryDB(query, variablesQuery)
+      const [rowsClient] = await (await mySqlConnectionPromise).query(query, variablesQuery)
+      const ID_CLIENT = rowsClient.insertId;
+      timeConnection.idClient = ID_CLIENT;
+      // const [rowsTimeConnection] = await queryDB(queryTimeConnection, [timeConnection]);
+      const [rowsTimeConnection] = await (await mySqlConnectionPromise).query(queryTimeConnection, [timeConnection]);
+      (await mySqlConnectionPromise).commit()
+      resolve('Hidrante agregado con exito');
+    }
+    catch (err) {
+      (await mySqlConnectionPromise).rollback()
+      console.log(err)
+      reject(err)
+    }
+
+
   });
 };
 
@@ -388,7 +452,7 @@ const deleteClient = (idClient) => {
 
 module.exports = {
   list: getClients,
-  add: setClient,
+  add: setClientHidrante,
   update: updateClient,
   delete: deleteClient,
   list_transactions: getTransactionsClients
