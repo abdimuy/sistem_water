@@ -53,8 +53,8 @@ const getTransactions = (idTransaction) => {
 const getTransactionsRange = (dateStart, dateEnd) => {
   return new Promise((resolve, reject) => {
     const datesRange = [
-      moment(dateStart).format('YYYY-MM-DD hh:mm:ss'),
-      moment(dateEnd).format('YYYY-MM-DD hh:mm:ss')
+      moment(dateStart).format('YYYY-MM-DD HH:mm:ss'),
+      moment(dateEnd).format('YYYY-MM-DD HH:mm:ss')
     ];
     const query = `
       SELECT

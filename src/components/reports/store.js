@@ -59,6 +59,7 @@ const getReportsClient = (idReport) => {
           ${table_transaction}.id AS idTransaction,
           ${table_transaction}.amount,
           ${table_transaction}.date AS dateTransaction,
+          ${table_transaction}.note,
           ${table_type_transactions}.name
         FROM ${table_reports}
         INNER JOIN ${table_transaction} ON ${table_reports}.id = ${table_transaction}.idReport

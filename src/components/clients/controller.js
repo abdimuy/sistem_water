@@ -5,6 +5,8 @@ const getClients = (idClient) => {
     try {
       const clients = await store.list(idClient);
       const clientsTransactions = await store.list_transactions(clients);
+      // const hidrantes = await store.list_hidrantes(clients);
+      // const clientsWithHidrantes = await store.add_hidrantes(clients);
       resolve(clientsTransactions);
     } catch (err) {
       console.log(err);

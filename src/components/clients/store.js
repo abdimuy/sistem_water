@@ -12,13 +12,16 @@ const {
   table_colonias,
   table_type_transactions,
   table_debts,
-  table_type_debts
+  table_type_debts,
+  idTypeTransactionPagoPorMantenimiento: ID_TYPE_TRANSACTION_PAGO_POR_MANTENIMIENTO,
+  idTypeClientTitular: ID_TYPE_CLIENT_TITULAR,
+  idTypeClientHidrante: ID_TYPE_CLIENT_HIDRANTE,
 } = require('../../database/constants');
 const { functionsDB: { queryDB } } = require('../functions');
 const moment = require('moment');
 
 const getClients = (idClient) => {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     let query = `
       SELECT 
         ${table_clients}.id,
@@ -47,28 +50,51 @@ const getClients = (idClient) => {
       WHERE ${table_time_connection}.active = 1
     `;
     let variablesQuery = [];
-
+    let queryWithIdClient = query;
     if (idClient) {
-      query += `AND ${table_clients}.id = ?`
+      queryWithIdClient += `AND ${table_clients}.id = ?`
       variablesQuery = [idClient];
     };
 
-    mySqlConnection.query(
-      query,
-      variablesQuery,
-      async (err, results, fields) => {
-        if (!err) {
-          resolve(idClient ? results[0] : results);
-        } else {
-          console.log(err);
-          reject(err);
-        };
-      }
-    );
+    try {
+      if (idClient !== undefined) {
+        const [results] = await queryDB(queryWithIdClient, variablesQuery);
+        const [allResults] = await queryDB(query);
+        const clients = results.map(clientTitular => {
+          if (clientTitular.idTypeClient === ID_TYPE_CLIENT_TITULAR) {
+            clientTitular.hidrantes = allResults.filter(client => (
+              client.idWaterConnection === clientTitular.idWaterConnection &&
+              client.idTypeClient === ID_TYPE_CLIENT_HIDRANTE
+            ));
+          } else {
+            clientTitular.hidrantes = [];
+          }
+          return clientTitular;
+        });
 
+        resolve(clients[0]);
+      } else {
+        const [results] = await queryDB(query, variablesQuery);
+        const clients = results.map(clientTitular => {
+          if (clientTitular.idTypeClient === ID_TYPE_CLIENT_TITULAR) {
+            clientTitular.hidrantes = results.filter(client => (
+              client.idWaterConnection === clientTitular.idWaterConnection &&
+              client.idTypeClient === ID_TYPE_CLIENT_HIDRANTE
+            ));
+          } else {
+            clientTitular.hidrantes = [];
+          }
+          return clientTitular;
+        });
+
+        resolve(clients);
+      }
+    } catch (err) {
+      console.log(err);
+      reject(err);
+    };
   });
 };
-
 
 const getTransactionsClients = async (arrayOrObject) => {
   return new Promise(async (resolve, reject) => {
@@ -82,7 +108,8 @@ const getTransactionsClients = async (arrayOrObject) => {
         ${table_transaction}.note,
         ${table_transaction}.dateCreate,
         ${table_type_transactions}.name,
-        ${table_reports}.id AS idReport
+        ${table_reports}.id AS idReport,
+        ${table_time_connection}.id AS idTimeConnection
       FROM ${table_transaction}
       INNER JOIN ${table_reports} ON ${table_transaction}.idReport = ${table_reports}.id
       INNER JOIN ${table_time_connection} ON ${table_reports}.idTimeConnection = ${table_time_connection}.id
@@ -101,18 +128,24 @@ const getTransactionsClients = async (arrayOrObject) => {
         priceConnection,
         idTypeClient
       FROM ${table_prices}
-      ORDER BY idTypeClient ASC, dateInit ASC
-      ;
-    `
-
+      ORDER BY idTypeClient ASC, dateInit ASC;
+    `;
     try {
       const waterConnectionPrices = await getData(queryPrices, []);
       // console.log({ waterConnectionPrices });
 
       if (Array.isArray(arrayOrObject)) {
         const arrayClients = arrayOrObject;
+
         for (const client of arrayClients) {
-          const { idTypeClient: ID_TYPE_CLIENT, dateStartPayment, idTimeConnection: ID_TIME_CONNECTION } = client;
+          const {
+            idTypeClient: ID_TYPE_CLIENT,
+            dateStartPayment,
+            idTimeConnection: ID_TIME_CONNECTION,
+            name: NAME_CLIENT,
+            lastName: LAST_NAME_CLIENT,
+          } = client;
+          let latePaymentsHidrantes = []
           // console.log({ ID_TYPE_CLIENT, dateStartPayment, ID_TIME_CONNECTION });
           const transactionsClients = await getData(queryTransactions, [ID_TIME_CONNECTION]);
           const latePayments = await generateLatePayment({
@@ -120,13 +153,43 @@ const getTransactionsClients = async (arrayOrObject) => {
             idTypeClient: ID_TYPE_CLIENT,
             prices: waterConnectionPrices,
             dateStartClient: dateStartPayment,
-            paymentsArray: transactionsClients
+            paymentsArray: transactionsClients,
+            fullName: `${NAME_CLIENT} ${LAST_NAME_CLIENT}`,
           });
-          newArray.push({ ...client, transactions: transactionsClients, latePayments });
+
+          for (const hidrante of client.hidrantes) {
+            const {
+              idTimeConnection: ID_TIME_CONNECTION_HIDRANTE,
+              idTypeClient: ID_TYPE_CLIENT_HIDRANTE,
+              dateStartPayment: DATE_START_PAYMENT_HIDRANTE,
+              name: NAME_HIDRANTE,
+              lastName: LAST_NAME_HIDRANTE,
+            } = hidrante;
+            const transactionsHidrante = await getData(queryTransactions, [ID_TIME_CONNECTION_HIDRANTE]);
+            const latePaymentsHidrante = await generateLatePayment({
+              idTimeConnection: ID_TIME_CONNECTION_HIDRANTE,
+              idTypeClient: ID_TYPE_CLIENT_HIDRANTE,
+              prices: waterConnectionPrices,
+              dateStartClient: DATE_START_PAYMENT_HIDRANTE,
+              paymentsArray: transactionsHidrante,
+              fullName: `${NAME_HIDRANTE} ${LAST_NAME_HIDRANTE}`,
+            });
+            // hidrante.latePayments = latePaymentsHidrante;
+            latePaymentsHidrantes.push(...latePaymentsHidrante);
+          };
+          const transactionsClientsAndHidrantes = sumarPagosConLaMismaFecha(latePayments, latePaymentsHidrantes);
+          newArray.push({ ...client, transactions: transactionsClients, latePayments: transactionsClientsAndHidrantes });
         };
         resolve(newArray);
       } else {
-        const { idTimeConnection: ID_TIME_CONNECTION, idTypeClient: ID_TYPE_CLIENT, dateStartPayment } = arrayOrObject;
+        const {
+          idTimeConnection: ID_TIME_CONNECTION,
+          idTypeClient: ID_TYPE_CLIENT,
+          dateStartPayment,
+          name: NAME_CLIENT,
+          lastName: LAST_NAME_CLIENT,
+        } = arrayOrObject;
+        const client = arrayOrObject;
         const transactionsClients = await getData(queryTransactions, [ID_TIME_CONNECTION]);
         // console.log({ dateStartPayment })
         const latePayments = await generateLatePayment({
@@ -134,12 +197,37 @@ const getTransactionsClients = async (arrayOrObject) => {
           idTypeClient: ID_TYPE_CLIENT,
           prices: waterConnectionPrices,
           dateStartClient: dateStartPayment,
-          paymentsArray: transactionsClients
+          paymentsArray: transactionsClients,
+          fullName: `${NAME_CLIENT} ${LAST_NAME_CLIENT}`,
         });
+
+        let latePaymentsHidrantes = []
+        // console.log({client})
+        for (const hidrante of client.hidrantes) {
+          const {
+            idTimeConnection: ID_TIME_CONNECTION_HIDRANTE,
+            idTypeClient: ID_TYPE_CLIENT_HIDRANTE,
+            dateStartPayment: DATE_START_PAYMENT_HIDRANTE,
+            name: NAME_HIDRANTE,
+            lastName: LAST_NAME_HIDRANTE,
+          } = hidrante;
+          const transactionsHidrante = await getData(queryTransactions, [ID_TIME_CONNECTION_HIDRANTE]);
+          const latePaymentsHidrante = await generateLatePayment({
+            idTimeConnection: ID_TIME_CONNECTION_HIDRANTE,
+            idTypeClient: ID_TYPE_CLIENT_HIDRANTE,
+            prices: waterConnectionPrices,
+            dateStartClient: DATE_START_PAYMENT_HIDRANTE,
+            paymentsArray: transactionsHidrante,
+            fullName: `${NAME_HIDRANTE} ${LAST_NAME_HIDRANTE}`,
+          });
+          // hidrante.latePayments = latePaymentsHidrante;
+          latePaymentsHidrantes.push(...latePaymentsHidrante);
+        };
+        const transactionsClientsAndHidrantes = sumarPagosConLaMismaFecha(latePayments, latePaymentsHidrantes);
         resolve([{
           ...arrayOrObject,
           transactions: transactionsClients,
-          latePayments
+          latePayments: transactionsClientsAndHidrantes
         }]);
       };
 
@@ -149,6 +237,41 @@ const getTransactionsClients = async (arrayOrObject) => {
     };
   });
 };
+
+const sumarPagosConLaMismaFecha = (pagosTitular, pagosHidrantes) => {
+  let newArray = [];
+  for (const pagoTitular of pagosTitular) {
+    const { date: DATE_TO_PAY_TITULAR, price: PRICE_TO_PAY_TITULAR, name: TYPE_PAYMENT } = pagoTitular;
+    const pagosHidranteSelected = pagosHidrantes.filter(pagoHidrante => {
+      const { date: DATE_TO_PAY_HIDRANTE } = pagoHidrante;
+      return (
+        moment(DATE_TO_PAY_TITULAR).isSame(moment(DATE_TO_PAY_HIDRANTE)) &&
+        TYPE_PAYMENT === 'PAGO MENSUAL'
+      );
+    });
+    const listPagosHidrantes = pagosHidranteSelected.map(pagoHidrante => pagoHidrante.price);
+    let newPayment = {
+      ...pagoTitular,
+      date: DATE_TO_PAY_TITULAR,
+      price: sumar(...listPagosHidrantes, PRICE_TO_PAY_TITULAR),
+      note: pagosHidrantes.length > 0 ?
+      (`TITULAR: $${pagoTitular.price} HIDRANTES: ${
+        pagosHidranteSelected === 0 ?
+        'No hay pagos de hidrantes' :
+        pagosHidranteSelected.map(pagoHidrante => `${pagoHidrante.fullName} $${pagoHidrante.price}`).join(',\n ')
+      }`)
+      :
+      '',
+      paymentToReport: [pagoTitular, ...pagosHidranteSelected],
+    }
+    newArray.push(newPayment);
+  };
+  return newArray;
+};
+
+const sumar = (...numbers) => {
+  return numbers.reduce((accumulator, currentValue) => accumulator + currentValue, 0);
+}
 
 const getData = (query, arrayVariables) => {
   return new Promise((resolve, reject) => {
@@ -167,8 +290,7 @@ const getData = (query, arrayVariables) => {
   });
 };
 
-const generateLatePayment = async ({ idTimeConnection, idTypeClient, prices, dateStartClient, paymentsArray }) => {
-  // console.log({prices, idTypeClient})
+const generateLatePayment = async ({ idTimeConnection, idTypeClient, prices, dateStartClient, paymentsArray, fullName }) => {
   if (!Array.isArray(paymentsArray) || paymentsArray === undefined) {
     paymentsArray = [];
   };
@@ -204,7 +326,6 @@ const generateLatePayment = async ({ idTimeConnection, idTypeClient, prices, dat
     let numberMonths = dateCurrent.diff(newDateStartClient, 'months', true);
     numberMonths = numberMonths % 1 === 0 ? numberMonths + 1 : Math.ceil(numberMonths);
     numberMonths += 24;
-    // console.log({ numberMonths })
 
     for (let i = 0; i < numberMonths; i++) {
       // console.log(dateStartPayment)
@@ -218,7 +339,7 @@ const generateLatePayment = async ({ idTimeConnection, idTypeClient, prices, dat
       const selectedPrice = editPrices.find(price => dateMonthlyPayment >= moment(price.dateInit) && dateMonthlyPayment < moment(price.dateFinish));
 
       const typePaymentMonth = dateMonthlyPayment.month();
-      const typePaymentYear = dateMonthlyPayment.year();
+      // const typePaymentYear = dateMonthlyPayment.year();
       const typePayment = createTypePayment({
         dateCurrent,
         dateMonthlyPayment
@@ -226,19 +347,29 @@ const generateLatePayment = async ({ idTimeConnection, idTypeClient, prices, dat
       // const typePayment = dateCurrent.month() === typePaymentMonth && dateCurrent.year() === typePaymentYear ?
       const price = typePayment === 'Pago atrasado' ? selectedPrice.latePrice : selectedPrice.price
 
-      const monthlyPayment = { date: dateMonthlyPayment, price: price, typePayment, idTypeTransaction: 1 };
+      const monthlyPayment = {
+        date: dateMonthlyPayment,
+        price: price,
+        typePayment,
+        idTypeTransaction: 1,
+        name: 'PAGO MENSUAL',
+        idTimeConnection,
+        fullName
+      };
 
-      if (typePaymentMonth === 0) {
+      if (typePaymentMonth === 11 && idTypeClient === ID_TYPE_CLIENT_TITULAR) {
 
         const anualPayment = {
           date: dateMonthlyPayment,
           price: selectedPrice.priceAnnuity,
-          name: 'Pago de mantenimiento anual',
+          name: 'PAGO POR MANTENIMIENTO ANUAL',
           typePayment: 'Pago pendiente',
-          idTypeTransaction: 3
+          idTypeTransaction: ID_TYPE_TRANSACTION_PAGO_POR_MANTENIMIENTO,
+          idTimeConnection,
+          fullName
         };
         // console.log({anualPayment})
-        paymentList = [...paymentList, anualPayment, monthlyPayment];
+        paymentList = [...paymentList, monthlyPayment, anualPayment];
       } else {
         paymentList = [...paymentList, monthlyPayment];
       };
@@ -247,7 +378,6 @@ const generateLatePayment = async ({ idTimeConnection, idTypeClient, prices, dat
 
     // console.log(paymentList)
     paymentList = [...debts, ...paymentList].sort((a, b) => moment(a.date).diff(moment(b.date)));
-    // console.log(paymentList.map((payment, index) => ({...payment, order: index + 1})));
     return paymentList.map((payment, index) => ({ ...payment, order: index + 1 }));
   } catch (err) {
     console.log(err);
@@ -314,14 +444,16 @@ const setClientHidrante = (data) => {
       dateStartPayment
     }
     // console.log({name, lastName, disabled, idTypeClient, idWaterConnection})
-    console.log({name,
-      lastName,
-      disabled,
-      idTypeClient,
-      idWaterConnection,
-      dateInitPayment,
-      active,
-      dateStartPayment})
+    // console.log({
+    //   name,
+    //   lastName,
+    //   disabled,
+    //   idTypeClient,
+    //   idWaterConnection,
+    //   dateInitPayment,
+    //   active,
+    //   dateStartPayment
+    // })
     if (!name || !lastName || !idTypeClient || !idWaterConnection || !dateInitPayment || !active || !dateStartPayment) {
       reject('Agregue toda la informacion necesaria para agregar un cliente');
       return null;
@@ -351,8 +483,8 @@ const setClientHidrante = (data) => {
       INSERT INTO ${table_time_connection} SET ?
     `
 
-    console.log(query)
-    console.log(queryTimeConnection)
+    // console.log(query)
+    // console.log(queryTimeConnection)
 
     // mySqlConnection.query(
     //   query,

@@ -1,102 +1,108 @@
 const moment = require('moment');
 
 const createResivo = (data) => {
-  const {
-    name,
-    lastName,
-    street,
-    houseNumber,
-    colonia,
-    numberWaterConnection,
-    typeClient,
-    report: { transactions },
-    report
-  } = data;
+  try {
 
+    const {
+      name,
+      lastName,
+      street,
+      houseNumber,
+      colonia,
+      numberWaterConnection,
+      typeClient,
+      report: { transactions },
+      report
+    } = data;
   
-  const createListPayments = (listPayments) => {
-    let total = 0;
-    const listPaymentsHTML = listPayments.map((payment) => {
-      const { amount, dateTransaction, name: details } = payment;
-      total += amount;
-      return (
-        `<tr class="item">
-        <td>${details} - ${moment(dateTransaction).format('MMMM YYYY')}</td>
-        <td>$${amount}.00</td>
-        </tr>
-        
-        `
-      );
-    });
-    const totalHTML = 
-    `<tr class="total">
-      <td></td>
-      <td>Total: $${total}.00</td>
-    </tr>`
-    return [...listPaymentsHTML, totalHTML]
-  };
-
-  return`
-  <!DOCTYPE html>
-  <html>
-    <head>
-      <meta charset="utf-8" />
-      <title>A simple, clean, and responsive HTML invoice template</title>
-      ${styles}
-    </head>
-
-    <body>
-      <div class="invoice-box">
-        <table cellpadding="0" cellspacing="0">
-          <tr class="top">
-            <td colspan="2">
-              <table>
-                <tr>
-                  <td class="title">
-                    <img src="https://www.sparksuite.com/images/logo.png" style="width: 100%; max-width: 300px" />
-                  </td>
-
-                  <td>
-                    Invoice #: 123<br />
-                    Fecha: ${moment(transactions.date).format('LL')}<br />
-                  </td>
-                </tr>
-              </table>
-            </td>
+    
+    const createListPayments = (listPayments) => {
+      let total = 0;
+      const listPaymentsHTML = listPayments.map((payment) => {
+        const { amount, dateTransaction, name: details, note } = payment;
+        console.log({payment})
+        total += amount;
+        return (
+          `<tr class="item">
+          <td>${details} - ${moment(dateTransaction).format('MMMM YYYY')} ${note !== undefined ? ` - ${note}` : ''}</td>
+          <td>$${amount}.00</td>
           </tr>
-
-          <tr class="information">
-            <td colspan="2">
-              <table>
-                <tr>
-                  <td>
-                    ${name} ${lastName}<br />
-                    ${numberWaterConnection}<br />
-                    ${street} ${houseNumber} ${colonia}<br />
-                  </td>
-
-                  <td>
-                    
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
-          <tr class="heading">
-            <td>Detalles</td>
-
-            <td>Precio</td>
-          </tr>
-
-          ${createListPayments(transactions)}
-
           
-        </table>
-      </div>
-    </body>
-  </html>
-`;
+          `
+        );
+      });
+      const totalHTML = 
+      `<tr class="total">
+        <td></td>
+        <td>Total: $${total}.00</td>
+      </tr>`
+      return [...listPaymentsHTML, totalHTML]
+    };
+  
+    return`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>A simple, clean, and responsive HTML invoice template</title>
+        ${styles}
+      </head>
+  
+      <body>
+        <div class="invoice-box">
+          <table cellpadding="0" cellspacing="0">
+            <tr class="top">
+              <td colspan="2">
+                <table>
+                  <tr>
+                    <td class="title">
+                      <img src="https://www.sparksuite.com/images/logo.png" style="width: 100%; max-width: 300px" />
+                    </td>
+  
+                    <td>
+                      Invoice #: 123<br />
+                      Fecha: ${moment(transactions.date).format('LL')}<br />
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+  
+            <tr class="information">
+              <td colspan="2">
+                <table>
+                  <tr>
+                    <td>
+                      ${name} ${lastName}<br />
+                      ${numberWaterConnection}<br />
+                      ${street} ${houseNumber} ${colonia}<br />
+                    </td>
+  
+                    <td>
+                      
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+  
+            <tr class="heading">
+              <td>Detalles</td>
+  
+              <td>Precio</td>
+            </tr>
+  
+            ${createListPayments(transactions)}
+  
+            
+          </table>
+        </div>
+      </body>
+    </html>
+  `;
+  } catch (error) {
+    console.log(error);
+  }
 }
 
 const styles = `

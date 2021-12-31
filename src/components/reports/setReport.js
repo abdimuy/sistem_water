@@ -1,7 +1,7 @@
 const mySqlConnectionPromise = require('../../database/connectionPromise');
 const { table_reports, table_transaction, table_clients, table_time_connection, table_type_debts, table_debts } = require('../../database/constants');
-const { list_transactions } = require('../clients/store');
-const moment = require('moment')
+const { list_transactions, list: list_clients } = require('../clients/store');
+const moment = require('moment');
 
 const setReport = (args) => {
   return new Promise(async (resolve, reject) => {
@@ -60,14 +60,17 @@ const setReport = (args) => {
 
 
     try {
-      const [clients] = await queryDB(queryClient, [idTimeConnection]);
-      const { id: ID_CLIENT, dateStartPayment: DATE_START_PAYMENT, idTypeClient } = clients[0];
-      const client = {
-        idClient: ID_CLIENT,
-        dateStartPayment: DATE_START_PAYMENT,
-        idTypeClient,
-        idTimeConnection
-      };
+      const [clientsDetails] = await queryDB(queryClient, [idTimeConnection]);
+      const ID_CLIENT = clientsDetails.id;
+      const clients = await list_clients(ID_CLIENT);
+      // const { id: ID_CLIENT, dateStartPayment: DATE_START_PAYMENT, idTypeClient } = clients[0];
+      // const client = {
+      //   idClient: ID_CLIENT,
+      //   dateStartPayment: DATE_START_PAYMENT,
+      //   idTypeClient,
+      //   idTimeConnection
+      // };
+      const client = clients[0];
       // console.log({client});
 
       const transactionsAndLatePayment = await list_transactions(client);
@@ -77,6 +80,21 @@ const setReport = (args) => {
 
       await validatePayments(transactionsArray, latePayments);
       // resolve({ transactionsArray, latePayments });
+      let newTransactionsArray = [];
+      transactionsArray.forEach(transaction => {
+        const { name: TYPE_PAYMENT } = transaction;
+        if (TYPE_PAYMENT === 'PAGO MENSUAL') {
+          const { paymentToReport  } = transaction;
+          const newPaymentToReport = [
+            ...paymentToReport.map(payment => {
+              return {...payment, note: payment.fullName}
+            })
+          ];
+          newTransactionsArray.push(...newPaymentToReport);
+        } else {
+          newTransactionsArray.push(transaction);
+        }
+      })
 
       await (await mySqlConnectionPromise).beginTransaction();
       const [rows, fields] = await (await mySqlConnectionPromise).execute(query, variablesQuery);
@@ -86,7 +104,7 @@ const setReport = (args) => {
         variablesQueryTransactions,
         querySetDebts,
         variablesQuerySetDebts
-      ] = createQueryTransactions(transactionsArray, ID_REPORT);
+      ] = createQueryTransactions(newTransactionsArray, ID_REPORT);
       // console.log({ querySetDebts, variablesQuerySetDebts });
       await querySetDebts.forEach(async (query, index) => {
         console.log('aqui ando')
@@ -94,7 +112,7 @@ const setReport = (args) => {
         await (await mySqlConnectionPromise).execute(query, variableQuerySetDebts);
       });
       // await (await mySqlConnectionPromise).execute(queryTransactions, variablesQueryTransactions);
-      console.log({queryTransactions, variablesQueryTransactions});
+      // console.log({ queryTransactions, variablesQueryTransactions });
       await (await mySqlConnectionPromise).execute(queryTransactions, variablesQueryTransactions);
       await (await mySqlConnectionPromise).commit();
       resolve(rows);
@@ -123,8 +141,8 @@ const validatePayments = (paymentsArray, latePaymentsArray) => {
 };
 
 const validateArray = (array) => {
-  return new Promise(async(resolve, reject) => {
-    console.log({array})
+  return new Promise(async (resolve, reject) => {
+    console.log({ array })
     if (!Array.isArray(array)) {
       reject('El array no es valido');
       return null;
@@ -138,15 +156,15 @@ const validateArray = (array) => {
       } = transaction;
       console.log({ amount, date, idTypeTransaction })
       // console.log(validateParameters(amount, date, idTypeTransaction));
-      
+
       // resolve(!validateParameters(amount, date, idTypeTransaction));
       return validateParameters(amount, date, idTypeTransaction);
     });
-    if(result) {
-      console.log({result})
+    if (result) {
+      // console.log({ result })
       resolve(true);
     } else {
-      console.log({result})
+      console.log({ result })
       reject('El array no es valido');
     }
   })
@@ -166,7 +184,7 @@ const createQueryTransactions = (transactionsArray, ID_REPORT) => {
     } = transaction;
     const transactionArgs = {
       amount,
-      date: moment(date).format('YYYY-MM-DD hh:mm:ss'),
+      date: moment(date).format('YYYY-MM-DD HH:mm:ss'),
       note,
       idTypeTransaction,
       ID_REPORT
@@ -175,7 +193,7 @@ const createQueryTransactions = (transactionsArray, ID_REPORT) => {
       queryChangeToPayment.push(`UPDATE ${table_debts} SET isPaid = 1 WHERE id = ?;`);
       variablesQueryChangeToPayment.push(transaction.id);
     };
-    console.log({ transactionArgs });
+    // console.log({ transactionArgs });
     if (index === 0) {
       query += `
         INSERT INTO ${table_transaction} (
@@ -186,10 +204,10 @@ const createQueryTransactions = (transactionsArray, ID_REPORT) => {
           idTypeTransaction,
           idReport
         )
-        VALUES (?, ?, '${moment().format('YYYY-MM-DD hh:mm:ss')}', ${argIsNull(note)}, ?, ?)
+        VALUES (?, ?, '${moment().format('YYYY-MM-DD HH:mm:ss')}', ${argIsNull(note)}, ?, ?)
       `;
     } else {
-      query += `, (?, ?, '${moment().format('YYYY-MM-DD hh:mm:ss')}', ${argIsNull(note)}, ?, ?)`
+      query += `, (?, ?, '${moment().format('YYYY-MM-DD HH:mm:ss')}', ${argIsNull(note)}, ?, ?)`
     };
 
     loopTransactionArgs(transactionArgs, variablesQuery);
@@ -203,7 +221,7 @@ const argIsNull = (arg) => (arg === undefined || arg === null) ? 'null' : '?';
 const loopTransactionArgs = (transactionArgs, variablesQuery) => {
   for (const key in transactionArgs) {
     if (transactionArgs.hasOwnProperty(key)) {
-      if (transactionArgs[key] !== undefined) {
+      if (transactionArgs[key] !== undefined && transactionArgs[key] !== null) {
         variablesQuery.push(transactionArgs[key]);
       };
     };
