@@ -341,7 +341,7 @@ const generateLatePayment = async ({ idTimeConnection, idTypeClient, prices, dat
       if (typePaymentMonth === 11 && idTypeClient === ID_TYPE_CLIENT_TITULAR) {
 
         const paymentAnualExist = paymentsArray.find(payment => {
-          return moment(payment.date).isSame(moment(newDateStartClient), 'year');
+          return moment(payment.date).isSame(moment(newDateStartClient), 'year') && payment.idTypeTransaction === 4;
         });
         // console.log({paymentAnualExist, dateMonthlyPayment})
 
