@@ -16,6 +16,8 @@ const {
   idTypeTransactionPagoPorMantenimiento: ID_TYPE_TRANSACTION_PAGO_POR_MANTENIMIENTO,
   idTypeClientTitular: ID_TYPE_CLIENT_TITULAR,
   idTypeClientHidrante: ID_TYPE_CLIENT_HIDRANTE,
+  ID_TYPE_DEBTS_MANTENIMIENTO_ANUAL,
+  ID_TYPE_DEBTS_MONTHLY_PAYMENT,
 } = require('../../database/constants');
 const { functionsDB: { queryDB } } = require('../functions');
 const moment = require('moment');
@@ -255,13 +257,12 @@ const sumarPagosConLaMismaFecha = (pagosTitular, pagosHidrantes) => {
       date: DATE_TO_PAY_TITULAR,
       price: sumar(...listPagosHidrantes, PRICE_TO_PAY_TITULAR),
       note: pagosHidrantes.length > 0 ?
-      (`TITULAR: $${pagoTitular.price} HIDRANTES: ${
-        pagosHidranteSelected === 0 ?
-        'No hay pagos de hidrantes' :
-        pagosHidranteSelected.map(pagoHidrante => `${pagoHidrante.fullName} $${pagoHidrante.price}`).join(',\n ')
-      }`)
-      :
-      '',
+        (`TITULAR: $${pagoTitular.price} HIDRANTES: ${pagosHidranteSelected === 0 ?
+          'No hay pagos de hidrantes' :
+          pagosHidranteSelected.map(pagoHidrante => `${pagoHidrante.fullName} $${pagoHidrante.price}`).join(',\n ')
+          }`)
+        :
+        '',
       paymentToReport: [pagoTitular, ...pagosHidranteSelected],
     }
     newArray.push(newPayment);
@@ -295,13 +296,13 @@ const generateLatePayment = async ({ idTimeConnection, idTypeClient, prices, dat
     paymentsArray = [];
   };
 
-  let paymentList = [];
-  const newDateStartClient = moment(dateStartClient);
-  // console.log({ newDateStartClient, dateStartClient });
-  const dateCurrent = moment();
-  const newPrices = prices.filter(price => price.idTypeClient === idTypeClient);
-
   try {
+
+    let paymentList = [];
+    const newDateStartClient = moment(dateStartClient);
+    const dateCurrent = moment();
+    const newPrices = prices.filter(price => price.idTypeClient === idTypeClient);
+
     const debts = await getDebts(idTimeConnection);
     const editPrices = newPrices.map(price => {
       return price.dateFinish ?
@@ -314,7 +315,6 @@ const generateLatePayment = async ({ idTimeConnection, idTypeClient, prices, dat
           dateInit: moment(moment(price.dateInit).format('YYYY-MM-DD')).format()
         });
     });
-    // console.log(editPrices)
 
     let indexDateStart = editPrices.findIndex(price => newDateStartClient < moment(price.dateInit));
 
@@ -330,21 +330,37 @@ const generateLatePayment = async ({ idTimeConnection, idTypeClient, prices, dat
     for (let i = 0; i < numberMonths; i++) {
       // console.log(dateStartPayment)
       const dateMonthlyPayment = moment(newDateStartClient).add(i, 'month')
-      const paymentExist = paymentsArray.find(payment => moment(payment.date).year() === dateMonthlyPayment.year() && moment(payment.date).month() === dateMonthlyPayment.month())
+      const paymentExist = paymentsArray.find(payment => {
+        return moment(payment.date).year() === dateMonthlyPayment.year() && moment(payment.date).month() === dateMonthlyPayment.month()
+      });
+
+      const selectedPrice = editPrices.find(price => dateMonthlyPayment >= moment(price.dateInit) && dateMonthlyPayment < moment(price.dateFinish));
+      const typePaymentMonth = dateMonthlyPayment.month();
+
+      if (typePaymentMonth === 11 && idTypeClient === ID_TYPE_CLIENT_TITULAR) {
+        const anualPayment = {
+          date: dateMonthlyPayment,
+          price: selectedPrice.priceAnnuity,
+          name: 'PAGO POR MANTENIMIENTO ANUAL',
+          typePayment: 'Pago pendiente',
+          idTypeTransaction: ID_TYPE_TRANSACTION_PAGO_POR_MANTENIMIENTO,
+          idTimeConnection,
+          fullName,
+          idTypeDebts: ID_TYPE_DEBTS_MANTENIMIENTO_ANUAL,
+        };
+        paymentList = [...paymentList, anualPayment];
+      }
+
       if (paymentExist !== undefined) {
-        // console.log(i);
-        // console.log('Ya existe un pago para este mes');
         continue;
       }
-      const selectedPrice = editPrices.find(price => dateMonthlyPayment >= moment(price.dateInit) && dateMonthlyPayment < moment(price.dateFinish));
 
-      const typePaymentMonth = dateMonthlyPayment.month();
       // const typePaymentYear = dateMonthlyPayment.year();
       const typePayment = createTypePayment({
         dateCurrent,
         dateMonthlyPayment
       }) ? ('Pago pendiente') : ('Pago atrasado');
-      // const typePayment = dateCurrent.month() === typePaymentMonth && dateCurrent.year() === typePaymentYear ?
+
       const price = typePayment === 'Pago atrasado' ? selectedPrice.latePrice : selectedPrice.price
 
       const monthlyPayment = {
@@ -354,34 +370,49 @@ const generateLatePayment = async ({ idTimeConnection, idTypeClient, prices, dat
         idTypeTransaction: 1,
         name: 'PAGO MENSUAL',
         idTimeConnection,
-        fullName
+        fullName,
+        idTypeDebts: ID_TYPE_DEBTS_MONTHLY_PAYMENT,
       };
 
-      if (typePaymentMonth === 11 && idTypeClient === ID_TYPE_CLIENT_TITULAR) {
+      // if (typePaymentMonth === 11 && idTypeClient === ID_TYPE_CLIENT_TITULAR) {
 
-        const anualPayment = {
-          date: dateMonthlyPayment,
-          price: selectedPrice.priceAnnuity,
-          name: 'PAGO POR MANTENIMIENTO ANUAL',
-          typePayment: 'Pago pendiente',
-          idTypeTransaction: ID_TYPE_TRANSACTION_PAGO_POR_MANTENIMIENTO,
-          idTimeConnection,
-          fullName
-        };
-        // console.log({anualPayment})
-        paymentList = [...paymentList, monthlyPayment, anualPayment];
-      } else {
-        paymentList = [...paymentList, monthlyPayment];
-      };
+      //   const anualPayment = {
+      //     date: dateMonthlyPayment,
+      //     price: selectedPrice.priceAnnuity,
+      //     name: 'PAGO POR MANTENIMIENTO ANUAL',
+      //     typePayment: 'Pago pendiente',
+      //     idTypeTransaction: ID_TYPE_TRANSACTION_PAGO_POR_MANTENIMIENTO,
+      //     idTimeConnection,
+      //     fullName,
+      //     idTypeDebts: ID_TYPE_DEBTS_MANTENIMIENTO_ANUAL,
+      //   };
+      //   paymentList = [...paymentList, monthlyPayment, anualPayment];
+      // } else {
+      //   paymentList = [...paymentList, monthlyPayment];
+      // };
+      paymentList = [...paymentList, monthlyPayment];
       // paymentList = [...paymentList, {dateStartPayment: moment(newDateStartClient).add(i, 'month').format('YYYY-MM-DD')}]
     };
 
+
     // console.log(paymentList)
-    paymentList = [...debts, ...paymentList].sort((a, b) => moment(a.date).diff(moment(b.date)));
+    paymentList = [...debts, ...paymentList].sort(compare);
     return paymentList.map((payment, index) => ({ ...payment, order: index + 1 }));
   } catch (err) {
     console.log(err);
   }
+};
+
+// const compare = (a, b) => moment(a.date).diff(moment(b.date));
+
+const compare = (a, b) => {
+  if (moment(a.date).isAfter(moment(b.date), 'day')) return 1;
+  else if (moment(a.date).isBefore(moment(b.date), 'day')) return -1;
+  else {
+    if (a.idTypeDebts < b.idTypeDebts) return -1;
+    else if (a.idTypeDebts > b.idTypeDebts) return 1;
+    return 0;
+  };
 };
 
 const createTypePayment = ({ dateCurrent, dateMonthlyPayment }) => {
@@ -400,7 +431,8 @@ const getDebts = (idTimeConnection) => {
         ${table_debts}.note,
         ${table_debts}.dateToPay AS date,
         ${table_debts}.price,
-        ${table_type_debts}.idTypeTransaction
+        ${table_type_debts}.idTypeTransaction,
+        ${table_debts}.idTypeDebts
       FROM ${table_debts}
       INNER JOIN ${table_type_debts} ON ${table_debts}.idTypeDebts = ${table_type_debts}.id
       WHERE (${table_debts}.idTimeConnection = ? AND ${table_debts}.isPaid = 0);
@@ -443,7 +475,6 @@ const setClientHidrante = (data) => {
       active,
       dateStartPayment
     }
-    // console.log({name, lastName, disabled, idTypeClient, idWaterConnection})
     // console.log({
     //   name,
     //   lastName,
@@ -508,7 +539,7 @@ const setClientHidrante = (data) => {
       timeConnection.idClient = ID_CLIENT;
       // const [rowsTimeConnection] = await queryDB(queryTimeConnection, [timeConnection]);
       const [rowsTimeConnection] = await (await mySqlConnectionPromise).query(queryTimeConnection, [timeConnection]);
-      (await mySqlConnectionPromise).commit()
+      (await mySqlConnectionPromise).commit();
       resolve('Hidrante agregado con exito');
     }
     catch (err) {

@@ -87,7 +87,7 @@ exports.login = async (req, res) => {
 
 exports.isAuthenticated = async (req, res, next) => {
   if (req.cookies.token) {
-    console.log({ req: req.cookies.token });
+    // console.log({ req: req.cookies.token });
     try {
       const decodicatedToken = await promisify(jwt.verify)(req.cookies.token, 'secret');
       const [user] = await (await mySqlConnection).query('SELECT * FROM users WHERE id = ?', [decodicatedToken.id]);

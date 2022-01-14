@@ -92,7 +92,7 @@ const setClientAndWaterConnection = (Args) => {
       } else {
         queryWaterConnection = `INSERT INTO ${table_water_connection} (street, houseNumber, idColonia, reference, dateConnection, idClient, numberConnection)
         VALUES (?, ?, ?, ?, ?, ?, ?);`
-        variablesQuery = [street, houseNumber, idColonia, reference, dateConnection, idClient, NEW_NUMBER_CONNECTION]
+        variablesQuery = [street, houseNumber, idColonia, reference, dateConnection, idClient, NEW_NUMBER_CONNECTION];
       }
       const [rowsWaterConnection, fieldsWaterConnection] = await queryDB(
         queryWaterConnection,
@@ -111,7 +111,7 @@ const setClientAndWaterConnection = (Args) => {
       const ID_TIME_CONNECTION = rowsTimeConnection.insertId;
       debtConnectionPayment.idTimeConnection = ID_TIME_CONNECTION;
       debtConnectionPayment.price = PRICES_CLIENT[0].priceConnection;
-      // await (await mySqlConnectionPromise).query(queryConnectionPayment, [debtConnectionPayment]) Esta es la linea que se debe usar para pagregar el pago de la conexion
+      await (await mySqlConnectionPromise).query(queryConnectionPayment, [debtConnectionPayment]);
 
       await (await mySqlConnectionPromise).commit();
       resolve('El cliente se ha agregado con exito')

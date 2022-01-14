@@ -107,7 +107,7 @@ const setReport = (args) => {
       ] = createQueryTransactions(newTransactionsArray, ID_REPORT);
       // console.log({ querySetDebts, variablesQuerySetDebts });
       await querySetDebts.forEach(async (query, index) => {
-        console.log('aqui ando')
+        // console.log('aqui ando')
         const variableQuerySetDebts = [variablesQuerySetDebts[index]];
         await (await mySqlConnectionPromise).execute(query, variableQuerySetDebts);
       });
@@ -142,19 +142,19 @@ const validatePayments = (paymentsArray, latePaymentsArray) => {
 
 const validateArray = (array) => {
   return new Promise(async (resolve, reject) => {
-    console.log({ array })
+    // console.log({ array })
     if (!Array.isArray(array)) {
       reject('El array no es valido');
       return null;
     };
     const result = array.every(transaction => {
-      console.log(transaction)
+      // console.log(transaction)
       const {
         price: amount,
         date,
         idTypeTransaction,
       } = transaction;
-      console.log({ amount, date, idTypeTransaction })
+      // console.log({ amount, date, idTypeTransaction })
       // console.log(validateParameters(amount, date, idTypeTransaction));
 
       // resolve(!validateParameters(amount, date, idTypeTransaction));
@@ -164,7 +164,7 @@ const validateArray = (array) => {
       // console.log({ result })
       resolve(true);
     } else {
-      console.log({ result })
+      // console.log({ result })
       reject('El array no es valido');
     }
   })

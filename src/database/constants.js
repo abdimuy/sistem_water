@@ -19,5 +19,7 @@ module.exports = {
   idTypeTransactionPagoPorMantenimiento: 4,
   idTypeDebtConnectionPayment: 1,
   idTypeClientTitular: 1,
-  idTypeClientHidrante: 2
+  idTypeClientHidrante: 2,
+  ID_TYPE_DEBTS_MANTENIMIENTO_ANUAL: 200,
+  ID_TYPE_DEBTS_MONTHLY_PAYMENT: 101,
 }
