@@ -109,6 +109,7 @@ const getTransactionsClients = async (arrayOrObject) => {
         ${table_transaction}.date,
         ${table_transaction}.note,
         ${table_transaction}.dateCreate,
+        ${table_transaction}.idTypeTransaction,
         ${table_type_transactions}.name,
         ${table_reports}.id AS idReport,
         ${table_time_connection}.id AS idTimeConnection
@@ -329,7 +330,7 @@ const generateLatePayment = async ({ idTimeConnection, idTypeClient, prices, dat
 
     for (let i = 0; i < numberMonths; i++) {
       // console.log(dateStartPayment)
-      const dateMonthlyPayment = moment(newDateStartClient).add(i, 'month')
+      const dateMonthlyPayment = moment(newDateStartClient).add(i, 'month');
       const paymentExist = paymentsArray.find(payment => {
         return moment(payment.date).year() === dateMonthlyPayment.year() && moment(payment.date).month() === dateMonthlyPayment.month()
       });
@@ -338,18 +339,26 @@ const generateLatePayment = async ({ idTimeConnection, idTypeClient, prices, dat
       const typePaymentMonth = dateMonthlyPayment.month();
 
       if (typePaymentMonth === 11 && idTypeClient === ID_TYPE_CLIENT_TITULAR) {
-        const anualPayment = {
-          date: dateMonthlyPayment,
-          price: selectedPrice.priceAnnuity,
-          name: 'PAGO POR MANTENIMIENTO ANUAL',
-          typePayment: 'Pago pendiente',
-          idTypeTransaction: ID_TYPE_TRANSACTION_PAGO_POR_MANTENIMIENTO,
-          idTimeConnection,
-          fullName,
-          idTypeDebts: ID_TYPE_DEBTS_MANTENIMIENTO_ANUAL,
-        };
-        paymentList = [...paymentList, anualPayment];
-      }
+
+        const paymentAnualExist = paymentsArray.find(payment => {
+          return moment(payment.date).isSame(moment(newDateStartClient), 'year');
+        });
+        // console.log({paymentAnualExist, dateMonthlyPayment})
+
+        if(paymentAnualExist === undefined) {
+          const anualPayment = {
+            date: dateMonthlyPayment,
+            price: selectedPrice.priceAnnuity,
+            name: 'PAGO POR MANTENIMIENTO ANUAL',
+            typePayment: 'Pago pendiente',
+            idTypeTransaction: ID_TYPE_TRANSACTION_PAGO_POR_MANTENIMIENTO,
+            idTimeConnection,
+            fullName,
+            idTypeDebts: ID_TYPE_DEBTS_MANTENIMIENTO_ANUAL,
+          };
+          paymentList = [...paymentList, anualPayment];
+        }
+      };
 
       if (paymentExist !== undefined) {
         continue;

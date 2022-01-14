@@ -105,9 +105,7 @@ const setReport = (args) => {
         querySetDebts,
         variablesQuerySetDebts
       ] = createQueryTransactions(newTransactionsArray, ID_REPORT);
-      // console.log({ querySetDebts, variablesQuerySetDebts });
       await querySetDebts.forEach(async (query, index) => {
-        // console.log('aqui ando')
         const variableQuerySetDebts = [variablesQuerySetDebts[index]];
         await (await mySqlConnectionPromise).execute(query, variableQuerySetDebts);
       });
