@@ -53,9 +53,10 @@ const getTransactions = (idTransaction) => {
 const getTransactionsRange = (dateStart, dateEnd) => {
   return new Promise((resolve, reject) => {
     const datesRange = [
-      moment(dateStart).format('YYYY-MM-DD HH:mm:ss'),
-      moment(dateEnd).format('YYYY-MM-DD HH:mm:ss')
+      moment(dateStart).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
+      moment(dateEnd).endOf('day').format('YYYY-MM-DD HH:mm:ss')
     ];
+    // console.log(datesRange);
     const query = `
       SELECT
         ${table_transaction}.id,
@@ -79,15 +80,15 @@ const getTransactionsRange = (dateStart, dateEnd) => {
       INNER JOIN ${table_colonias} ON ${table_water_connection}.idColonia = ${table_colonias}.id
       INNER JOIN ${table_type_clients} ON ${table_clients}.idTypeClient = ${table_type_clients}.id
       INNER JOIN ${table_type_income_or_expense} ON ${table_type_transactions}.idTypeIncomeOrExpense = ${table_type_income_or_expense}.id
-      WHERE dateCreate >= ? AND dateCreate <= ? AND ${table_type_transactions}.idTypeIncomeOrExpense = 1
+      WHERE dateCreate >= ? AND dateCreate < ? 
       ORDER BY ${table_transaction}.dateCreate DESC
+      LIMIT 100000000
     `;
     mySqlConnection.query(
       query,
       datesRange,
       (err, results, fields) => {
         if (!err) {
-          console.log({ results });
           resolve(results);
         } else {
           console.log(err);

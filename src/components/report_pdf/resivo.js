@@ -12,7 +12,7 @@ const createResivo = (data) => {
       numberWaterConnection,
       typeClient,
       report: { transactions },
-      report
+      urlSignings
     } = data;
   
     
@@ -20,11 +20,10 @@ const createResivo = (data) => {
       let total = 0;
       const listPaymentsHTML = listPayments.map((payment) => {
         const { amount, dateTransaction, name: details, note } = payment;
-        console.log({payment})
         total += amount;
         return (
           `<tr class="item">
-          <td>${details} - ${moment(dateTransaction).format('MMMM YYYY')} ${note !== undefined ? ` - ${note}` : ''}</td>
+          <td>${details} - ${moment(dateTransaction).format('MMMM YYYY').toUpperCase()} ${note !== undefined ? ` - ${note}` : ''}</td>
           <td>$${amount}.00</td>
           </tr>
           
@@ -56,12 +55,12 @@ const createResivo = (data) => {
                 <table>
                   <tr>
                     <td class="title">
-                      <img src="https://www.sparksuite.com/images/logo.png" style="width: 100%; max-width: 300px" />
+                      <div style=" height: 150px">
+                        <img src="http://localhost:3000/logo.jpeg" style="width: auto; height: 100%" />
+                      </div>
                     </td>
-  
                     <td>
-                      Invoice #: 123<br />
-                      Fecha: ${moment(transactions.date).format('LL')}<br />
+                      Fecha: ${moment(transactions.date).format('LL').toUpperCase()}<br/>
                     </td>
                   </tr>
                 </table>
@@ -97,6 +96,32 @@ const createResivo = (data) => {
             
           </table>
         </div>
+        <table class="signings-container">
+          <tr>
+            <td class="signing">
+              <div>
+                <img src="${urlSignings[0]?.url}" style="width: 150px; height: 100px; margin-left: 25%"/>
+              </div>
+              <div style="padding-left: 25%">
+                __________________________
+              </div>
+              <div  class="font" style="padding-left: 25%">
+                ${urlSignings[0]?.name}
+              </div>
+            </td>
+            <td class="signing">
+              <div>
+                <img src="${urlSignings[1]?.url}" style="width: 150px; height: 100px; margin-left: 25%"/>
+              </div>
+              <div style="padding-left: 25%">
+                __________________________
+              </div>
+              <div  class="font" style="padding-left: 25%">
+                ${urlSignings[1]?.name}
+              </div>
+            </td>
+          </tr>
+        </table>
       </body>
     </html>
   `;
@@ -107,6 +132,24 @@ const createResivo = (data) => {
 
 const styles = `
   <style>
+    .font {
+      font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
+      font-size: 12px;
+    }
+
+    .signings-container {
+      width: 100%;
+    }
+
+    .border {
+      border: 1px solid red
+    }
+
+    .signing {
+      justify-content: center;
+      width: 50%
+    }
+    
     .invoice-box {
       max-width: 800px;
       margin: auto;

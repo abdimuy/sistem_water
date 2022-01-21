@@ -14,6 +14,7 @@ module.exports = {
   table_debts: 'debts',
   table_type_debts: 'type_debts',
   table_type_income_or_expense: 'type_income_or_expense',
+  table_signing: 'signing',
   idTypeTransactionPagoMensual: 1,
   idTypeTransactionPagoPorConexion: 2,
   idTypeTransactionPagoPorMantenimiento: 4,

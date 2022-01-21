@@ -3,6 +3,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cookieParser = require('cookie-parser');
 const moment = require('moment');
+const multer = require('multer');
 require('moment/locale/es-mx');
 
 const router = require('./network/routes');
@@ -11,7 +12,7 @@ const cors = require('cors');
 
 const app = express();
 
-
+app.use(express.static('src/uploads'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cors({credentials: true, origin: true}));
