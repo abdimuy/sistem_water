@@ -130,7 +130,7 @@ const validatePayments = (paymentsArray, latePaymentsArray) => {
     const paymentsArrayEdited = [...paymentsArray];
     let latePaymentsArrayEdited = [...latePaymentsArray];
     paymentsArrayEdited.forEach((payment, index) => {
-      if (!(payment.order === latePaymentsArrayEdited[index].order)) {
+      if (!(payment?.order === latePaymentsArrayEdited[index]?.order)) {
         reject('El orden de pago no coincide con el orden de vencimiento');
       }
     });

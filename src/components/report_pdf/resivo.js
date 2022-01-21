@@ -12,10 +12,10 @@ const createResivo = (data) => {
       numberWaterConnection,
       typeClient,
       report: { transactions },
+      report,
       urlSignings
     } = data;
   
-    
     const createListPayments = (listPayments) => {
       let total = 0;
       const listPaymentsHTML = listPayments.map((payment) => {
@@ -23,8 +23,8 @@ const createResivo = (data) => {
         total += amount;
         return (
           `<tr class="item">
-          <td>${details} - ${moment(dateTransaction).format('MMMM YYYY').toUpperCase()} ${note !== undefined ? ` - ${note}` : ''}</td>
-          <td>$${amount}.00</td>
+            <td>${details} - ${moment(dateTransaction).format('MMMM YYYY').toUpperCase()} ${note !== undefined ? ` - ${note}` : ''}</td>
+            <td>$${amount}.00</td>
           </tr>
           
           `
@@ -60,7 +60,7 @@ const createResivo = (data) => {
                       </div>
                     </td>
                     <td>
-                      Fecha: ${moment(transactions.date).format('LL').toUpperCase()}<br/>
+                      Fecha: ${moment(report.date).format('LL').toUpperCase()}<br/>
                     </td>
                   </tr>
                 </table>
@@ -156,8 +156,8 @@ const styles = `
       padding: 30px;
       border: 1px solid #eee;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
-      font-size: 16px;
-      line-height: 24px;
+      font-size: 14px;
+      line-height: 12px;
       font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
       color: #555;
     }
@@ -199,6 +199,10 @@ const styles = `
 
     .invoice-box table tr.details td {
       padding-bottom: 20px;
+    }
+
+    .item {
+      height: 8px
     }
 
     .invoice-box table tr.item td {
