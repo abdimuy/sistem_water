@@ -18,6 +18,7 @@ module.exports = {
   idTypeTransactionPagoMensual: 1,
   idTypeTransactionPagoPorConexion: 2,
   idTypeTransactionPagoPorMantenimiento: 4,
+  idIgnoreTransaction: 100000,
   idTypeDebtConnectionPayment: 1,
   idTypeClientTitular: 1,
   idTypeClientHidrante: 2,

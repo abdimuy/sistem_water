@@ -16,8 +16,12 @@ const {
   idTypeTransactionPagoPorMantenimiento: ID_TYPE_TRANSACTION_PAGO_POR_MANTENIMIENTO,
   idTypeClientTitular: ID_TYPE_CLIENT_TITULAR,
   idTypeClientHidrante: ID_TYPE_CLIENT_HIDRANTE,
+  idTypeTransactionPagoMensual,
+  idTypeTransactionPagoPorConexion,
   ID_TYPE_DEBTS_MANTENIMIENTO_ANUAL,
   ID_TYPE_DEBTS_MONTHLY_PAYMENT,
+  idTypeTransactionPagoPorMantenimiento,
+  idIgnoreTransaction,
 } = require('../../database/constants');
 const { functionsDB: { queryDB } } = require('../functions');
 const moment = require('moment');
@@ -203,7 +207,6 @@ const getTransactionsClients = async (arrayOrObject) => {
           paymentsArray: transactionsClients,
           fullName: `${NAME_CLIENT} ${LAST_NAME_CLIENT}`,
         });
-
         let latePaymentsHidrantes = []
         // console.log({client})
         for (const hidrante of client.hidrantes) {
@@ -345,7 +348,7 @@ const generateLatePayment = async ({ idTimeConnection, idTypeClient, prices, dat
         });
         // console.log({paymentAnualExist, dateMonthlyPayment})
 
-        if(paymentAnualExist === undefined) {
+        if (paymentAnualExist === undefined) {
           const anualPayment = {
             date: dateMonthlyPayment,
             price: selectedPrice.priceAnnuity,
@@ -406,13 +409,26 @@ const generateLatePayment = async ({ idTimeConnection, idTypeClient, prices, dat
 
     // console.log(paymentList)
     paymentList = [...debts, ...paymentList].sort(compare);
-    return paymentList.map((payment, index) => ({ ...payment, order: index + 1 }));
+    let acumPayment = 0;
+    const orderedPayments = paymentList.map((payment, index) => {
+      if ([idTypeTransactionPagoMensual, idTypeTransactionPagoPorConexion, idTypeTransactionPagoPorMantenimiento].includes(payment.idTypeTransaction)) {
+        acumPayment += 1;
+        return ({
+          ...payment,
+          order: acumPayment
+        });
+      } else {
+        return ({
+          ...payment,
+          order: idIgnoreTransaction
+        });
+      }
+    });
+    return orderedPayments;
   } catch (err) {
     console.log(err);
   }
 };
-
-// const compare = (a, b) => moment(a.date).diff(moment(b.date));
 
 const compare = (a, b) => {
   if (moment(a.date).isAfter(moment(b.date), 'day')) return 1;
@@ -483,62 +499,22 @@ const setClientHidrante = (data) => {
       dateInitPayment,
       active,
       dateStartPayment
-    }
-    // console.log({
-    //   name,
-    //   lastName,
-    //   disabled,
-    //   idTypeClient,
-    //   idWaterConnection,
-    //   dateInitPayment,
-    //   active,
-    //   dateStartPayment
-    // })
+    };
     if (!name || !lastName || !idTypeClient || !idWaterConnection || !dateInitPayment || !active || !dateStartPayment) {
       reject('Agregue toda la informacion necesaria para agregar un cliente');
       return null;
-    }
+    };
 
     let variablesQuery = [];
     let query = ``;
-    // if (!idWaterConnection) {
-    //   query = `
-    //     INSERT INTO ${table_clients} (name, lastName, disabled, idTypeClient)
-    //     VALUES (?, ?, ?, ?)
-    //   `;
-    //   variablesQuery = [name, lastName, disabled, idTypeClient];
-    // } else {
-    //   query = `
-    //     INSERT INTO ${table_clients} (name, lastName, disabled, idTypeClient, idWaterConnection)
-    //     VALUES (?, ?, ?, ?, ?)
-    //   `;
-    //   variablesQuery = [name, lastName, disabled, idTypeClient, idWaterConnection];
-    // };
 
     query = `
       INSERT INTO ${table_clients} SET ?
-    `
+    `;
     variablesQuery = [client];
     const queryTimeConnection = `
       INSERT INTO ${table_time_connection} SET ?
-    `
-
-    // console.log(query)
-    // console.log(queryTimeConnection)
-
-    // mySqlConnection.query(
-    //   query,
-    //   variablesQuery,
-    //   (err, results, fields) => {
-    //     if (!err) {
-    //       resolve('Cliente agregado con exito');
-    //     } else {
-    //       console.log(err);
-    //       reject(err)
-    //       return null
-    //     };
-    //   }
-    // );
+    `;
 
     try {
       (await mySqlConnectionPromise).beginTransaction()

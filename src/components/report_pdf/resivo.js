@@ -23,7 +23,7 @@ const createResivo = (data) => {
         total += amount;
         return (
           `<tr class="item">
-            <td>${details} - ${moment(dateTransaction).format('MMMM YYYY').toUpperCase()} ${note !== undefined ? ` - ${note}` : ''}</td>
+            <td>${details} - ${moment(dateTransaction).format('MMMM YYYY').toUpperCase()} ${note}</td>
             <td>$${amount}.00</td>
           </tr>
           

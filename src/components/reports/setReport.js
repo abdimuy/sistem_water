@@ -1,5 +1,5 @@
 const mySqlConnectionPromise = require('../../database/connectionPromise');
-const { table_reports, table_transaction, table_clients, table_time_connection, table_type_debts, table_debts } = require('../../database/constants');
+const { table_reports, table_transaction, table_clients, table_time_connection, table_type_debts, table_debts, idIgnoreTransaction } = require('../../database/constants');
 const { list_transactions, list: list_clients } = require('../clients/store');
 const moment = require('moment');
 
@@ -22,13 +22,6 @@ const setReport = (args) => {
       reject(err);
       return null;
     }
-    // console.log(noteReport);
-    // if (await !validateArray(transactionsArray)) {
-    //   console.log('El array no es valido');
-    //   reject('El array de transacciones no es valido');
-    //   return null
-    // };
-    // console.log({ejemplo: await validateArray(transactionsArray)});
 
     const query = `
     INSERT INTO ${table_reports} (idTypeReport, idTimeConnection, note, date)
@@ -61,22 +54,12 @@ const setReport = (args) => {
 
     try {
       const [clientsDetails] = await queryDB(queryClient, [idTimeConnection]);
-      const ID_CLIENT = clientsDetails.id;
+      const ID_CLIENT = clientsDetails[0].id;
       const clients = await list_clients(ID_CLIENT);
-      // const { id: ID_CLIENT, dateStartPayment: DATE_START_PAYMENT, idTypeClient } = clients[0];
-      // const client = {
-      //   idClient: ID_CLIENT,
-      //   dateStartPayment: DATE_START_PAYMENT,
-      //   idTypeClient,
-      //   idTimeConnection
-      // };
-      const client = clients[0];
-      // console.log({client});
 
-      const transactionsAndLatePayment = await list_transactions(client);
+      const transactionsAndLatePayment = await list_transactions(clients);
       const { latePayments } = transactionsAndLatePayment[0];
-      // console.log({latePayments, transactionsArray});
-      // resolve(transactions)
+      latePayments.sort((a, b) => a.order - b.order);
 
       await validatePayments(transactionsArray, latePayments);
       // resolve({ transactionsArray, latePayments });
@@ -129,10 +112,14 @@ const validatePayments = (paymentsArray, latePaymentsArray) => {
   return new Promise((resolve, reject) => {
     const paymentsArrayEdited = [...paymentsArray];
     let latePaymentsArrayEdited = [...latePaymentsArray];
+    let acumPaymentCounter = 0;
     paymentsArrayEdited.forEach((payment, index) => {
-      if (!(payment?.order === latePaymentsArrayEdited[index]?.order)) {
-        reject('El orden de pago no coincide con el orden de vencimiento');
-      }
+      if(payment.order !== idIgnoreTransaction) {
+        if (!(payment?.order === latePaymentsArrayEdited[acumPaymentCounter]?.order)) {
+          reject('El orden de pago no coincide con el orden de vencimiento');
+        };
+        acumPaymentCounter += 1;
+      };
     });
     resolve(true);
   });
