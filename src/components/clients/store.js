@@ -246,15 +246,18 @@ const getTransactionsClients = async (arrayOrObject) => {
 
 const sumarPagosConLaMismaFecha = (pagosTitular, pagosHidrantes) => {
   let newArray = [];
+  // console.log(pagosHidrantes)
+  // console.log(pagosTitular)
   for (const pagoTitular of pagosTitular) {
     const { date: DATE_TO_PAY_TITULAR, price: PRICE_TO_PAY_TITULAR, name: TYPE_PAYMENT } = pagoTitular;
     const pagosHidranteSelected = pagosHidrantes.filter(pagoHidrante => {
       const { date: DATE_TO_PAY_HIDRANTE } = pagoHidrante;
       return (
-        moment(DATE_TO_PAY_TITULAR).isSame(moment(DATE_TO_PAY_HIDRANTE)) &&
+        moment(DATE_TO_PAY_TITULAR).isSame(moment(DATE_TO_PAY_HIDRANTE), 'month') &&
         TYPE_PAYMENT === 'PAGO MENSUAL'
       );
     });
+    // console.log({pagosHidranteSelected})
     const listPagosHidrantes = pagosHidranteSelected.map(pagoHidrante => pagoHidrante.price);
     let newPayment = {
       ...pagoTitular,
