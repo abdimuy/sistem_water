@@ -26,7 +26,7 @@ const {
 const { functionsDB: { queryDB } } = require('../functions');
 const moment = require('moment');
 
-const getClients = (idClient) => {
+const getClients = (idClient, withHidrantes = true) => {
   return new Promise(async (resolve, reject) => {
     let query = `
       SELECT 
@@ -57,6 +57,11 @@ const getClients = (idClient) => {
     `;
     let variablesQuery = [];
     let queryWithIdClient = query;
+    let queryWithHidrantes = query;
+    const queryWithoutHidrantes = ` AND ${table_client_level}.id = 1`
+    if (!withHidrantes) {
+      query += queryWithoutHidrantes
+    }
     if (idClient) {
       queryWithIdClient += `AND ${table_clients}.id = ?`
       variablesQuery = [idClient];
@@ -65,7 +70,7 @@ const getClients = (idClient) => {
     try {
       if (idClient !== undefined) {
         const [results] = await queryDB(queryWithIdClient, variablesQuery);
-        const [allResults] = await queryDB(query);
+        const [allResults] = await queryDB(queryWithHidrantes);
         const clients = results.map(clientTitular => {
           if (clientTitular.idTypeClient === ID_TYPE_CLIENT_TITULAR) {
             clientTitular.hidrantes = allResults.filter(client => (
@@ -245,35 +250,45 @@ const getTransactionsClients = async (arrayOrObject) => {
 };
 
 const sumarPagosConLaMismaFecha = (pagosTitular, pagosHidrantes) => {
-  let newArray = [];
   // console.log(pagosHidrantes)
   // console.log(pagosTitular)
-  for (const pagoTitular of pagosTitular) {
-    const { date: DATE_TO_PAY_TITULAR, price: PRICE_TO_PAY_TITULAR, name: TYPE_PAYMENT } = pagoTitular;
-    const pagosHidranteSelected = pagosHidrantes.filter(pagoHidrante => {
-      const { date: DATE_TO_PAY_HIDRANTE } = pagoHidrante;
-      return (
-        moment(DATE_TO_PAY_TITULAR).isSame(moment(DATE_TO_PAY_HIDRANTE), 'month') &&
-        TYPE_PAYMENT === 'PAGO MENSUAL'
-      );
-    });
-    // console.log({pagosHidranteSelected})
-    const listPagosHidrantes = pagosHidranteSelected.map(pagoHidrante => pagoHidrante.price);
-    let newPayment = {
-      ...pagoTitular,
-      date: DATE_TO_PAY_TITULAR,
-      price: sumar(...listPagosHidrantes, PRICE_TO_PAY_TITULAR),
-      note: pagosHidrantes.length > 0 ?
-        (`TITULAR: $${pagoTitular.price} HIDRANTES: ${pagosHidranteSelected === 0 ?
-          'No hay pagos de hidrantes' :
-          pagosHidranteSelected.map(pagoHidrante => `${pagoHidrante.fullName} $${pagoHidrante.price}`).join(',\n ')
-          }`)
-        :
-        '',
-      paymentToReport: [pagoTitular, ...pagosHidranteSelected],
-    }
-    newArray.push(newPayment);
-  };
+  let newArray = [];
+  let primaryPagos;
+  let secondaryPagos;
+  // if(pagosTitular.length > pagosHidrantes.length) {
+    primaryPagos = pagosTitular;
+    secondaryPagos = pagosHidrantes;
+  // } else {
+  //   primaryPagos = pagosHidrantes;
+  //   secondaryPagos = pagosTitular;
+  // };
+
+    for (const primaryClient of primaryPagos) {
+      const { date: DATE_TO_PAY_TITULAR, price: PRICE_TO_PAY_TITULAR, name: TYPE_PAYMENT } = primaryClient;
+      const pagosHidranteSelected = secondaryPagos.filter(pagoHidrante => {
+        const { date: DATE_TO_PAY_HIDRANTE } = pagoHidrante;
+        return (
+          moment(DATE_TO_PAY_TITULAR).isSame(moment(DATE_TO_PAY_HIDRANTE), 'month') &&
+          TYPE_PAYMENT === 'PAGO MENSUAL'
+        );
+      });
+      // console.log({pagosHidranteSelected})
+      const listPagosHidrantes = pagosHidranteSelected.map(pagoHidrante => pagoHidrante.price);
+      let newPayment = {
+        ...primaryClient,
+        date: DATE_TO_PAY_TITULAR,
+        price: sumar(...listPagosHidrantes, PRICE_TO_PAY_TITULAR),
+        note: secondaryPagos.length > 0 ?
+          (`TITULAR: $${primaryClient.price} HIDRANTES: ${pagosHidranteSelected === 0 ?
+            'No hay pagos de hidrantes' :
+            pagosHidranteSelected.map(pagoHidrante => `${pagoHidrante.fullName} $${pagoHidrante.price}`).join(',\n ')
+            }`)
+          :
+          '',
+        paymentToReport: [primaryClient, ...pagosHidranteSelected],
+      }
+      newArray.push(newPayment);
+    };
   return newArray;
 };
 
@@ -335,10 +350,10 @@ const generateLatePayment = async ({ idTimeConnection, idTypeClient, prices, dat
     numberMonths += 24;
 
     for (let i = 0; i < numberMonths; i++) {
-      // console.log(dateStartPayment)
       const dateMonthlyPayment = moment(newDateStartClient).add(i, 'month');
       const paymentExist = paymentsArray.find(payment => {
-        return moment(payment.date).year() === dateMonthlyPayment.year() && moment(payment.date).month() === dateMonthlyPayment.month()
+        // return moment(payment.date).year() === dateMonthlyPayment.year() && moment(payment.date).month() === dateMonthlyPayment.month()
+        return moment(payment.date).isSame(dateMonthlyPayment, 'month') && payment?.idTypeTransaction === idTypeTransactionPagoMensual
       });
 
       const selectedPrice = editPrices.find(price => dateMonthlyPayment >= moment(price.dateInit) && dateMonthlyPayment < moment(price.dateFinish));
@@ -389,22 +404,6 @@ const generateLatePayment = async ({ idTimeConnection, idTypeClient, prices, dat
         idTypeDebts: ID_TYPE_DEBTS_MONTHLY_PAYMENT,
       };
 
-      // if (typePaymentMonth === 11 && idTypeClient === ID_TYPE_CLIENT_TITULAR) {
-
-      //   const anualPayment = {
-      //     date: dateMonthlyPayment,
-      //     price: selectedPrice.priceAnnuity,
-      //     name: 'PAGO POR MANTENIMIENTO ANUAL',
-      //     typePayment: 'Pago pendiente',
-      //     idTypeTransaction: ID_TYPE_TRANSACTION_PAGO_POR_MANTENIMIENTO,
-      //     idTimeConnection,
-      //     fullName,
-      //     idTypeDebts: ID_TYPE_DEBTS_MANTENIMIENTO_ANUAL,
-      //   };
-      //   paymentList = [...paymentList, monthlyPayment, anualPayment];
-      // } else {
-      //   paymentList = [...paymentList, monthlyPayment];
-      // };
       paymentList = [...paymentList, monthlyPayment];
       // paymentList = [...paymentList, {dateStartPayment: moment(newDateStartClient).add(i, 'month').format('YYYY-MM-DD')}]
     };

@@ -61,24 +61,10 @@ const createResivo = (data) => {
                     </td>
                     <td>
                       Fecha: ${moment(report.date).format('LL').toUpperCase()}<br/>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-  
-            <tr class="information">
-              <td colspan="2">
-                <table>
-                  <tr>
-                    <td>
+                      <br/>
                       ${name} ${lastName}<br />
                       ${numberWaterConnection}<br />
                       ${street} ${houseNumber} ${colonia}<br />
-                    </td>
-  
-                    <td>
-                      
                     </td>
                   </tr>
                 </table>
