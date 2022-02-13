@@ -30,14 +30,16 @@ router.post('/', (req, res) => {
     idTimeConnection,
     noteReport,
     dateReport,
-    transactionsArray
+    transactionsArray,
+    idUser,
   } = req.body;
   controller.setReport({
     idTypeReport,
     idTimeConnection,
     noteReport,
     dateReport,
-    transactionsArray
+    transactionsArray,
+    idUser,
   })
   .then(reportAdded => {
     response.success({req, res, message: reportAdded});

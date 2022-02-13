@@ -1,22 +1,44 @@
 const mySqlConnection = require('../../database/connection');
-const { table_users } = require('../../database/constants');
+const { table_users, table_roles } = require('../../database/constants');
 const { createQueryUpdate, checkExitsFields } = require('../functions');
 
 const getUser = (idUser) => {
   return new Promise((resolve, reject) => {
     let query;
     let variablesQuery = [];
-    if(idUser) {
-      query = `SELECT * FROM ${table_users} WHERE id = ?`;
+    if (idUser) {
+      query = `
+        SELECT
+          ${table_users}.id,
+          name,
+          lastName,
+          nameUser,
+          ${table_roles}.id AS idRole,
+          ${table_roles}.roles AS role
+        FROM ${table_users}
+        INNER JOIN ${table_roles} ON ${table_users}.idRole = ${table_roles}.id
+        WHERE ${table_users}.id = ?`
+        ;
+
       variablesQuery.push(idUser);
     } else {
-      query = `SELECT * FROM ${table_users}`;
+      query = `
+        SELECT
+          ${table_users}.id,
+          name,
+          lastName,
+          nameUser,
+          ${table_roles}.id AS idRole,
+          ${table_roles}.roles AS role
+        FROM ${table_users}
+        INNER JOIN ${table_roles} ON ${table_users}.idRole = ${table_roles}.id
+      `;
     };
     mySqlConnection.query(
       query,
       variablesQuery,
       (err, results, fields) => {
-        if(!err) {
+        if (!err) {
           resolve(idUser ? results[0] : results);
         } else {
           console.log(err);
@@ -30,20 +52,20 @@ const getUser = (idUser) => {
 const setUser = (userArgs) => {
   const { name, lastName, email, password } = userArgs;
   return new Promise((resolve, reject) => {
-    if(!name || !lastName || !email || !password) {
+    if (!name || !lastName || !email || !password) {
       reject('Agregue todos campos necesarios para crear un usuario');
       return null;
     };
     const query = `
       INSERT INTO ${table_users} 
-      (name, lastName, email, password)
-      VALUES (?, ?, ?, ?);
+      (name, lastName, email, password, idRole)
+      VALUES (?, ?, ?, ?, 1);
     `;
     mySqlConnection.query(
       query,
       [name, lastName, email, password],
       (err, results, fields) => {
-        if(!err) {
+        if (!err) {
           resolve('El usuario se ha creado correctamente');
         } else {
           console.log(err);
@@ -58,12 +80,12 @@ const updateUser = (userArgs) => {
   const { name, lastName, email, password, idUser } = userArgs;
   return new Promise((resolve, reject) => {
     const arrayTransactionArgs = [
-      {field: name, column: 'name', notNull: true},
-      {field: lastName, column: 'lastName', notNull: true},
-      {field: email, column: 'email', notNull: true},
-      {field: password, column: 'password', notNull: true}
+      { field: name, column: 'name', notNull: true },
+      { field: lastName, column: 'lastName', notNull: true },
+      { field: email, column: 'email', notNull: true },
+      { field: password, column: 'password', notNull: true }
     ];
-    if(checkExitsFields(arrayTransactionArgs)) {
+    if (checkExitsFields(arrayTransactionArgs)) {
       reject('Agregue todos los campos necesarios para actualizar el usuario');
       return null;
     };
@@ -77,7 +99,7 @@ const updateUser = (userArgs) => {
       query,
       variablesQuery,
       (err, result, fields) => {
-        if(!err) {
+        if (!err) {
           resolve('El usuario se ha editado con exito');
         } else {
           console.log(err);
@@ -95,7 +117,7 @@ const deleteUser = (idUser) => {
       query,
       [idUser],
       (err, results, fields) => {
-        if(!err) {
+        if (!err) {
           resolve('El usuario ha sido eliminado correctamente');
         } else {
           console.log(err);

@@ -65,26 +65,6 @@ exports.login = async (req, res) => {
   };
 };
 
-// exports.isAuthenticated = async (req, res, next) => {
-//   if (req.cookies.token) {
-//     try {
-//       const decodicatedToken = await promisify(jwt.verify)(req.cookies.token, 'secret');
-//       const [user] = await (await mySqlConnection).query('SELECT * FROM users WHERE id = ?', [decodicatedToken.id]);
-//       if (user.length > 0) {
-//         req.user = user[0];
-//         return next();
-//       } else {
-//         return next();
-//       }
-//     } catch (error) {
-//       console.log(error);
-//       // return next
-//     }
-//   } else {
-//     res.status(401).send({ error: 'You must be logged in' });
-//   };
-// };
-
 exports.isAuthenticated = async (req, res, next) => {
   if (req.cookies.token) {
     // console.log({ req: req.cookies.token });

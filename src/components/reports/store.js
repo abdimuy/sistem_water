@@ -4,8 +4,7 @@ const {
   table_type_reports,
   table_transaction,
   table_time_connection,
-  table_clients,
-  table_water_connection,
+  table_users,
   table_type_transactions
 } = require('../../database/constants');
 const setReport = require('./setReport');
@@ -46,11 +45,14 @@ const getReportsClient = (idReport) => {
         ${table_reports}.idTimeConnection,
         ${table_reports}.date,
         ${table_reports}.note,
-        ${table_time_connection}.idClient
+        ${table_time_connection}.idClient,
+        ${table_users}.id AS idUser,
+        concat(${table_users}.name, ' ' ,${table_users}.lastName) AS userName
       FROM ${table_reports}
       INNER JOIN ${table_transaction} ON ${table_reports}.id = ${table_transaction}.idReport
       INNER JOIN ${table_type_reports} ON ${table_reports}.idTypeReport = ${table_type_reports}.id
       INNER JOIN ${table_time_connection} ON ${table_reports}.idTimeConnection = ${table_time_connection}.id
+      INNER JOIN ${table_users} ON ${table_reports}.idUser = ${table_users}.id
       `;
       
       const queryTransaction = `

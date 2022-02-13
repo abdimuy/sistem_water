@@ -1,5 +1,5 @@
 const mySqlConnectionPromise = require('../../database/connectionPromise');
-const { table_reports, table_transaction, table_clients, table_time_connection, table_type_debts, table_debts, idIgnoreTransaction } = require('../../database/constants');
+const { table_reports, table_transaction, table_clients, table_time_connection, table_debts, idIgnoreTransaction } = require('../../database/constants');
 const { list_transactions, list: list_clients } = require('../clients/store');
 const moment = require('moment');
 
@@ -10,10 +10,11 @@ const setReport = (args) => {
       idTimeConnection,
       noteReport,
       dateReport,
-      transactionsArray
+      transactionsArray,
+      idUser,
     } = args;
     try {
-      if (await !validateParameters(idTypeReport, idTimeConnection, dateReport)) {
+      if (await !validateParameters(idTypeReport, idTimeConnection, dateReport, idUser)) {
         reject('Faltan parametros');
         return null;
       }
@@ -24,8 +25,8 @@ const setReport = (args) => {
     }
 
     const query = `
-    INSERT INTO ${table_reports} (idTypeReport, idTimeConnection, note, date)
-    VALUES (?, ?, ${argIsNull(noteReport)}, ?);
+    INSERT INTO ${table_reports} (idTypeReport, idTimeConnection, note, date, idUser)
+    VALUES (?, ?, ${argIsNull(noteReport)}, ?, ?);
     `;
     // console.log(query);
     const variablesQuery = [];
@@ -47,6 +48,7 @@ const setReport = (args) => {
         idTimeConnection,
         noteReport,
         dateReport,
+        idUser
       },
       variablesQuery
     );

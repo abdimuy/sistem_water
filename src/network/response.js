@@ -5,7 +5,7 @@ exports.success = ({req, res, message, status}) => {
     error: "",
     body: message
   });
-}
+};
 
 exports.error = ({req, res, error, status, details}) => {
   console.log(chalk.red(`[response error] ${details}`));
@@ -13,4 +13,4 @@ exports.error = ({req, res, error, status, details}) => {
     error: error,
     body: ''
   });
-}
+};

@@ -2,7 +2,6 @@ const moment = require('moment');
 
 const createResivo = (data) => {
   try {
-
     const {
       name,
       lastName,
@@ -11,7 +10,7 @@ const createResivo = (data) => {
       colonia,
       numberWaterConnection,
       typeClient,
-      report: { transactions },
+      report: { transactions, userName, id: idReport},
       report,
       urlSignings
     } = data;
@@ -60,6 +59,7 @@ const createResivo = (data) => {
                       </div>
                     </td>
                     <td>
+                      Folio: ${idReport}<br>
                       Fecha: ${moment(report.date).format('LL').toUpperCase()}<br/>
                       <br/>
                       ${name} ${lastName}<br />
@@ -108,8 +108,12 @@ const createResivo = (data) => {
             </td>
           </tr>
         </table>
-      </body>
-    </html>
+        <br/>
+        <div class='footer'>
+          ATENDIO: ${userName}
+        </div>
+        </body>
+        </html>
   `;
   } catch (error) {
     console.log(error);
@@ -118,9 +122,16 @@ const createResivo = (data) => {
 
 const styles = `
   <style>
-    .font {
+    .font
+    {
       font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
       font-size: 12px;
+    }
+    
+    .footer {
+      font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
+      font-size: 12px;
+      padding-left: 20px;
     }
 
     .signings-container {
