@@ -1,6 +1,8 @@
 const express = require('express');
 const controller = require('./controller');
 const response = require('../../network/response');
+const pdf = require('html-pdf');
+const reportTransactions = require('./reportTransactions');
 
 const router = express.Router();
 
@@ -23,6 +25,23 @@ router.get('/range', (req, res) => {
     .catch((err) => {
       response.error({req, res, error: 'Error al obtener las transacciones', status: 500, details: err});
     });
+});
+
+router.get('/reportTransactions', async (req, res) => {
+  try {
+    const { dateStart, dateEnd } = req.query;
+    const transactions = await controller.getTransactionsRange(dateStart, dateEnd)
+    pdf.create(reportTransactions(transactions, [dateStart, dateEnd]), {border: { bottom: 20, top: 20}}).toStream((error, stream) => {
+      if (error) {
+        res.end("Error creando PDF: ")
+      } else {
+        res.setHeader("Content-Type", "application/pdf");
+        stream.pipe(res);
+      }
+    }, { height: '11in', width: '8.5in' });
+  } catch(err) {
+    response.error({req, res, error: 'Error al generar el reporte', status: 500, details: err});
+  }
 });
 
 router.get('/:id', (req, res) => {

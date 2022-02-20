@@ -8,7 +8,8 @@ const {
   table_water_connection,
   table_colonias,
   table_type_clients,
-  table_type_income_or_expense
+  table_type_income_or_expense,
+  table_users
 } = require('../../database/constants');
 const { createQueryUpdate, checkExitsFields } = require('../functions');
 const moment = require('moment')
@@ -56,7 +57,6 @@ const getTransactionsRange = (dateStart, dateEnd) => {
       moment(dateStart).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
       moment(dateEnd).endOf('day').format('YYYY-MM-DD HH:mm:ss')
     ];
-    // console.log(datesRange);
     const query = `
       SELECT
         ${table_transaction}.id,
@@ -70,7 +70,8 @@ const getTransactionsRange = (dateStart, dateEnd) => {
         concat(${table_water_connection}.numberConnection, ' - ', ${table_colonias}.name) AS numberWaterConnection,
         ${table_type_transactions}.name AS typeTransaction,
         ${table_type_clients}.name AS typeClient,
-        ${table_type_income_or_expense}.name AS typeIncomeOrExpense
+        ${table_type_income_or_expense}.name AS typeIncomeOrExpense,
+        ${table_users}.name AS userName
       FROM ${table_transaction}
       INNER JOIN ${table_type_transactions} ON ${table_transaction}.idTypeTransaction = ${table_type_transactions}.id
       INNER JOIN ${table_reports} ON ${table_transaction}.idReport = ${table_reports}.id
@@ -80,7 +81,8 @@ const getTransactionsRange = (dateStart, dateEnd) => {
       INNER JOIN ${table_colonias} ON ${table_water_connection}.idColonia = ${table_colonias}.id
       INNER JOIN ${table_type_clients} ON ${table_clients}.idTypeClient = ${table_type_clients}.id
       INNER JOIN ${table_type_income_or_expense} ON ${table_type_transactions}.idTypeIncomeOrExpense = ${table_type_income_or_expense}.id
-      WHERE dateCreate >= ? AND dateCreate < ? 
+      INNER JOIN ${table_users} ON ${table_reports}.idUser = ${table_users}.id
+      WHERE dateCreate >= ? AND dateCreate < ?
       ORDER BY ${table_transaction}.dateCreate DESC
       LIMIT 100000000
     `;

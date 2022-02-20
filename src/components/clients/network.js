@@ -14,6 +14,16 @@ router.get('/', (req, res) => {
     })
 });
 
+router.get('/hidrantes', (req, res) => {
+  controller.getHidrantes()
+    .then((hidrantesList) => {
+      response.success({req, res, message: hidrantesList})
+    })
+    .catch((err) => {
+      response.error({req, res, details: 'Unexpected Error', status: 500, error: err})
+    });
+});
+
 router.get('/:id', (req, res) => {
   const { id: ID_CLIENT} = req.params;
   
