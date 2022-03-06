@@ -16,6 +16,7 @@ module.exports = {
   table_type_debts: 'type_debts',
   table_type_income_or_expense: 'type_income_or_expense',
   table_signing: 'signing',
+  table_other_transactions: 'other_transactions',
   idTypeTransactionPagoMensual: 1,
   idTypeTransactionPagoPorConexion: 2,
   idTypeTransactionPagoPorMantenimiento: 4,
@@ -27,4 +28,6 @@ module.exports = {
   ID_TYPE_DEBTS_MONTHLY_PAYMENT: 101,
   ID_LEVEL_CLIENT_TITULAR: 1,
   ID_LEVEL_CLIENT_HIDRANTE: 2,
+  ID_TYPE_INCOME: 1,
+  ID_TYPE_EXPENSE: 2,
 }

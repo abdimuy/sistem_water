@@ -22,8 +22,8 @@ const createResivo = (data) => {
         total += amount;
         return (
           `<tr class="item">
-            <td>${details} - ${moment(dateTransaction).format('MMMM YYYY').toUpperCase()} ${note}</td>
-            <td>$${amount}.00</td>
+            <td class="font">${details} - ${moment(dateTransaction).format('MMMM YYYY').toUpperCase()} ${note}</td>
+            <td class="font">$${amount}.00</td>
           </tr>
           
           `
@@ -32,7 +32,7 @@ const createResivo = (data) => {
       const totalHTML = 
       `<tr class="total">
         <td></td>
-        <td>Total: $${total}.00</td>
+        <td class="font">Total: $${total}.00</td>
       </tr>`
       return [...listPaymentsHTML, totalHTML]
     };
@@ -58,7 +58,7 @@ const createResivo = (data) => {
                         <img src="http://localhost:3000/logo.jpeg" style="width: auto; height: 100%" />
                       </div>
                     </td>
-                    <td>
+                    <td class="font">
                       Folio: ${idReport}<br>
                       Fecha: ${moment(report.date).format('LL').toUpperCase()}<br/>
                       <br/>
@@ -72,12 +72,12 @@ const createResivo = (data) => {
             </tr>
   
             <tr class="heading">
-              <td>Detalles</td>
+              <td class="font">Detalles</td>
   
-              <td>Precio</td>
+              <td class="font">Precio</td>
             </tr>
   
-            ${createListPayments(transactions)}
+            ${createListPayments(transactions).join('')}
   
             
           </table>
@@ -109,7 +109,7 @@ const createResivo = (data) => {
           </tr>
         </table>
         <br/>
-        <div class='footer'>
+        <div class='footer font'>
           ATENDIO: ${userName}
         </div>
         </body>
@@ -130,7 +130,7 @@ const styles = `
     
     .footer {
       font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
-      font-size: 12px;
+      font-size: 10px;
       padding-left: 20px;
     }
 
@@ -153,8 +153,7 @@ const styles = `
       padding: 30px;
       border: 1px solid #eee;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
-      font-size: 14px;
-      line-height: 12px;
+      line-height: 10px;
       font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
       color: #555;
     }

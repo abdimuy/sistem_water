@@ -57,7 +57,8 @@ const setReport = (args) => {
     try {
       const [clientsDetails] = await queryDB(queryClient, [idTimeConnection]);
       const ID_CLIENT = clientsDetails[0].id;
-      const clients = await list_clients(ID_CLIENT);
+      const clients = await list_clients({idClient: ID_CLIENT});
+      // console.log({clients})
 
       const transactionsAndLatePayment = await list_transactions(clients);
       const { latePayments } = transactionsAndLatePayment[0];
@@ -113,6 +114,7 @@ const validateParameters = (...args) => {
 const validatePayments = (paymentsArray, latePaymentsArray) => {
   return new Promise((resolve, reject) => {
     const paymentsArrayEdited = [...paymentsArray];
+    // console.log({paymentsArray, latePaymentsArray})
     let latePaymentsArrayEdited = [...latePaymentsArray];
     let acumPaymentCounter = 0;
     paymentsArrayEdited.forEach((payment, index) => {

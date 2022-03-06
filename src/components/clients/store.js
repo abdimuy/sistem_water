@@ -31,11 +31,11 @@ const getClients = ({ idClient, typeClient = ID_TYPE_CLIENT_TITULAR }) => {
     let queryWithIdClient = query;
     let queryWithHidrantes = query;
 
+
     if (idClient) {
       queryWithIdClient += `AND ${table_clients}.id = ?`
       variablesQuery = [idClient];
     };
-
     try {
       if (idClient !== undefined) {
         const [results] = await queryDB(queryWithIdClient, variablesQuery);
@@ -392,7 +392,11 @@ const generateLatePayment = async ({ idTimeConnection, idTypeClient, prices, dat
     paymentList = [...debts, ...paymentList].sort(compare);
     let acumPayment = 0;
     const orderedPayments = paymentList.map((payment, index) => {
-      if ([idTypeTransactionPagoMensual, idTypeTransactionPagoPorConexion, idTypeTransactionPagoPorMantenimiento].includes(payment.idTypeTransaction)) {
+      if ([
+        idTypeTransactionPagoMensual,
+        idTypeTransactionPagoPorConexion,
+        // idTypeTransactionPagoPorMantenimiento
+      ].includes(payment.idTypeTransaction)) {
         acumPayment += 1;
         return ({
           ...payment,

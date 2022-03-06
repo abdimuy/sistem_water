@@ -10,7 +10,18 @@ router.get('/', (req, res) => {
       response.success({req, res, message: clientsList})
     })
     .catch((err) => {
-      response.error({req, res, details: 'Unexpected Error', status: 500, error: err})
+      response.error({req, res, details: 'Error al obtener los clientes', status: 500, error: err})
+    })
+});
+
+router.get('/without_transactions', (req, res) => {
+  const { idClient: ID_CLIENT} = req.body;
+  controller.getClientsWithoutTransactions(ID_CLIENT)
+    .then((clientsList) => {
+      response.success({req, res, message: clientsList})
+    })
+    .catch((err) => {
+      response.error({req, res, details: 'Error al obtener los clientes', status: 500, error: err})
     })
 });
 
@@ -20,7 +31,7 @@ router.get('/hidrantes', (req, res) => {
       response.success({req, res, message: hidrantesList})
     })
     .catch((err) => {
-      response.error({req, res, details: 'Unexpected Error', status: 500, error: err})
+      response.error({req, res, details: 'Error al obtener los clientes', status: 500, error: err})
     });
 });
 
@@ -32,7 +43,7 @@ router.get('/:id', (req, res) => {
       response.success({req, res, message: clientsList});
     })
     .catch((err) => {
-      response.error({req, res, details: 'Unexpected Error', status: 500, error: err})
+      response.error({req, res, details: 'Error al obtener los clientes', status: 500, error: err})
     })
 });
 

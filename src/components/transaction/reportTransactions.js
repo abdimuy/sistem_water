@@ -14,7 +14,7 @@ const createReporteTransactions = (listTransactions, dateRange) => {
         } = transaction;
         total += amount;
         return (
-          `<tr class="item">
+          `<tr class="item font">
             <td>${numberWaterConnection}</td>
             <td>${clientName}</td>
             <td>${moment(dateCreate).format('DD-MM-YYYY').toUpperCase()}</td>
@@ -24,7 +24,7 @@ const createReporteTransactions = (listTransactions, dateRange) => {
         );
       });
       const totalHTML = 
-      `<tr class="total">
+      `<tr class="total font">
         <td></td>
         <td>Total: $${total}.00</td>
       </tr>`
@@ -47,7 +47,7 @@ const createReporteTransactions = (listTransactions, dateRange) => {
           </div>
           <table cellpadding="0" cellspacing="0">
             
-            <tr class="heading">
+            <tr class="heading font">
               <td>No. de Toma</td>
               <td>Cliente</td>
               <td>Fecha de cobro</td>
@@ -109,8 +109,7 @@ const styles = `
       padding: 30px;
       border: 1px solid #eee;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
-      font-size: 12px;
-      line-height: 12px;
+      line-height: 10px;
       font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
       color: #555;
     }

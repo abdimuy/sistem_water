@@ -4,7 +4,7 @@ const mysql = require('mysql2/promise');
     host: 'localhost',
     user: 'root',
     database: 'db_sistem_water',
-    password: 'admin'
+    password: '1AdminSistemWater$',
   });
 
   const mySqlConnectionPromise = async () => {

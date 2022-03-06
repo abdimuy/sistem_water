@@ -5,9 +5,20 @@ const getClients = (idClient) => {
     try {
       const clients = await store.list({ idClient: idClient});
       const clientsTransactions = await store.list_transactions(clients);
-      // const hidrantes = await store.list_hidrantes(clients);
-      // const clientsWithHidrantes = await store.add_hidrantes(clients);
       resolve(clientsTransactions);
+    } catch (err) {
+      console.log(err);
+      reject('Error al obtener los clientes');
+      return null;
+    };
+  });
+};
+
+const getClientsWithoutTransactions = (idClient) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const clients = store.list({ idClient: idClient });
+      resolve(clients);
     } catch (err) {
       console.log(err);
       reject('Error al obtener los clientes');
@@ -61,6 +72,7 @@ const deleteClient = (idClient) => {
 
 module.exports = {
   getClients,
+  getClientsWithoutTransactions,
   getHidrantes,
   addClient,
   updateClient,
