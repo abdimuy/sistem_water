@@ -42,7 +42,7 @@ const createReporteTransactions = (listTransactions, dateRange) => {
   
       <body>
         <div class="invoice-box">
-          <div style="font-size: 15px; margin-bottom: 20px">
+          <div style="font-size: 10px; margin-bottom: 20px">
             REPORTE DEL ${moment(dateRange[0]).format('DD-MM-YYYY').toUpperCase()} AL ${moment(dateRange[1]).format('DD-MM-YYYY').toUpperCase()}
           </div>
           <table cellpadding="0" cellspacing="0">
@@ -74,7 +74,7 @@ const styles = `
     .font
     {
       font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
-      font-size: 12px;
+      font-size: 8px;
     }
 
     .single-line {
@@ -86,7 +86,7 @@ const styles = `
     
     .footer {
       font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
-      font-size: 12px;
+      font-size: 8px;
       padding-left: 20px;
     }
 
@@ -109,7 +109,7 @@ const styles = `
       padding: 30px;
       border: 1px solid #eee;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
-      line-height: 10px;
+      line-height: 6px;
       font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
       color: #555;
     }
