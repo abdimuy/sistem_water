@@ -59,11 +59,14 @@ const createResivo = (data) => {
                       </div>
                     </td>
                     <td class="font">
-                      Folio: ${idReport}<br>
+                      Folio: ${idReport}<br/>
+                      <br/>
                       Fecha: ${moment(report.date).format('LL').toUpperCase()}<br/>
                       <br/>
                       ${name} ${lastName}<br />
+                      <br/>
                       ${numberWaterConnection}<br />
+                      <br/>
                       ${street} ${houseNumber} ${colonia}<br />
                     </td>
                   </tr>

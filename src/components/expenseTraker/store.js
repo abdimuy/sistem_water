@@ -9,8 +9,19 @@ const moment = require('moment');
 const getAllTransactions = () => {
   return new Promise(async (resolve, reject) => {
     try {
-      const [incomes] = await queryDB(queryGetAllTransactions, [ID_TYPE_INCOME, ID_TYPE_INCOME]);
-      const [expenses] = await queryDB(queryGetAllTransactions, [ID_TYPE_EXPENSE, ID_TYPE_EXPENSE]);
+      const dateInitTracker = moment('2022-03-07 00:00:00').format('YYYY-MM-DD HH:mm:ss');
+      const [incomes] = await queryDB(queryGetAllTransactions, [
+        ID_TYPE_INCOME,
+        dateInitTracker,
+        ID_TYPE_INCOME,
+        dateInitTracker
+      ]);
+      const [expenses] = await queryDB(queryGetAllTransactions, [
+        ID_TYPE_EXPENSE,
+        dateInitTracker,
+        ID_TYPE_EXPENSE,
+        dateInitTracker
+      ]);
 
       resolve([
         incomes[0].total_incomes,
@@ -29,7 +40,7 @@ const getAllTransactionsByMonth = () => {
       const [incomes] = await queryDB(queryGetAllTransactionsLastMonth, [
         ID_TYPE_INCOME,
         lastMonth,
-        ID_TYPE_EXPENSE,
+        ID_TYPE_INCOME,
         lastMonth,
       ]);
       const [expenses] = await queryDB(queryGetAllTransactionsLastMonth, [
